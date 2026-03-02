@@ -176,4 +176,116 @@ mod tests {
 
         assert_eq!(!(a & b), !a | !b);
     }
+
+    #[test]
+    fn empty_bitboard_has_no_bits_set() {
+        let b = Bitboard::empty();
+
+        for i in 0..64 {
+            assert!(!b.is_set(i), "Empty bitboard should have no bits set at index {i}");
+        }
+    }
+
+    #[test]
+    fn set_all_bits() {
+        let mut b = Bitboard::empty();
+
+        for i in 0..64 {
+            b.set(i);
+        }
+
+        assert_eq!(b.count(), 64);
+        assert_eq!(b.to_u64(), u64::MAX);
+    }
+
+    #[test]
+    fn clear_all_bits() {
+        let mut b = Bitboard::from_u64(u64::MAX);
+
+        for i in 0..64 {
+            b.clear(i);
+        }
+
+        assert_eq!(b.count(), 0);
+        assert_eq!(b.to_u64(), 0);
+    }
+
+    #[test]
+    fn set_same_bit_twice_idempotent() {
+        let mut b = Bitboard::empty();
+
+        b.set(10);
+        assert_eq!(b.count(), 1);
+
+        b.set(10);
+        assert_eq!(b.count(), 1);
+        assert!(b.is_set(10));
+    }
+
+    #[test]
+    fn bitboard_equality() {
+        let a = Bitboard::from_u64(0xDEADBEEF);
+        let b = Bitboard::from_u64(0xDEADBEEF);
+        let c = Bitboard::from_u64(0xCAFEBABE);
+
+        assert_eq!(a, b);
+        assert_ne!(a, c);
+    }
+
+    #[test]
+    fn bitboard_copy_clone() {
+        let a = Bitboard::from_u64(0x123456);
+        let b = a;
+        let c = a.clone();
+
+        assert_eq!(a, b);
+        assert_eq!(a, c);
+    }
+
+    #[test]
+    fn count_various_patterns() {
+        assert_eq!(Bitboard::from_u64(0b0).count(), 0);
+        assert_eq!(Bitboard::from_u64(0b1).count(), 1);
+        assert_eq!(Bitboard::from_u64(0b11).count(), 2);
+        assert_eq!(Bitboard::from_u64(0b101010).count(), 3);
+        assert_eq!(Bitboard::from_u64(0xFF).count(), 8);
+    }
+
+    #[test]
+    fn boundary_bits_zero_and_sixtythree() {
+        let mut b = Bitboard::empty();
+
+        b.set(0);
+        assert!(b.is_set(0));
+        assert_eq!(b.to_u64(), 1);
+
+        b.set(63);
+        assert!(b.is_set(63));
+        assert_eq!(b.count(), 2);
+    }
+
+    #[test]
+    fn bitwise_operations_with_empty() {
+        let a = Bitboard::from_u64(0xFF);
+        let empty = Bitboard::empty();
+
+        assert_eq!(a & empty, empty);
+        assert_eq!(a | empty, a);
+        assert_eq!(a ^ empty, a);
+    }
+
+    #[test]
+    fn bitwise_operations_with_self() {
+        let a = Bitboard::from_u64(0xABCD);
+
+        assert_eq!(a & a, a);
+        assert_eq!(a | a, a);
+        assert_eq!(a ^ a, Bitboard::empty());
+    }
+
+    #[test]
+    fn double_negation() {
+        let a = Bitboard::from_u64(0x12345678);
+        assert_eq!(!!a, a);
+    }
 }
