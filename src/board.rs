@@ -97,7 +97,7 @@ mod tests {
 
         b.set(63);
         assert_eq!(b.count(), 2);
-        assert!(b.is_set(0));
+        assert!(b.is_set(63));
     }
 
     #[test]
@@ -169,6 +169,7 @@ mod tests {
         assert_eq!(a ^ b, b ^ a);
     }
 
+    #[test]
     fn de_morgan() {
         let a = Bitboard::from_u64(0xF0F0);
         let b = Bitboard::from_u64(0x0FF0);
