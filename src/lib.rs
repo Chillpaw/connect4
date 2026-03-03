@@ -1,4 +1,5 @@
 mod board;
+mod position;
 
 pub fn run() {
     //TODO: initialise board
