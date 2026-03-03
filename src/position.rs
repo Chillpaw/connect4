@@ -82,16 +82,16 @@ impl Position {
         // this is calculated by wrapping the game grid around the width to determine the flat index of the bitmask
 
         // (x: 3, y: 1) would become
-        // 0 0 0 0 0 0 0
-        // 0 0 0 1 0 0 0
-        // 0 0 0 0 0 0 0
+        // 0 0 0 0 0 0 0 20
+        // 0 0 0 1 0 0 0 13
+        // 0 0 0 0 0 0 0 6
         // expected index = 10
 
         // (x: 5, y: 2) would become
-        // 0 1 0 0 0 0 0
-        // 0 0 0 0 0 0 0
-        // 0 0 0 0 0 0 0
-        // expected index = 15
+        // 0 1 0 0 0 0 0 20
+        // 0 0 0 0 0 0 0 13
+        // 0 0 0 0 0 0 0 6
+        // expected index = 19
 
         (coord.y * Self::WIDTH + coord.x) as u8
     }
