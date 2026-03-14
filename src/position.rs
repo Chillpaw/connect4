@@ -1,7 +1,7 @@
 use crate::board::Bitboard;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-enum Player {
+pub enum Player {
     Red,
     Blue
 }
@@ -23,7 +23,7 @@ impl Player {
 }
 
 #[derive(Debug)]
-struct CoOrdinate {
+pub struct CoOrdinate {
     x: usize,
     y: usize,
 }
@@ -41,9 +41,24 @@ pub struct Position {
 }
 
 impl Position {
-    const WIDTH: usize = 7;
-    const HEIGHT: usize = 6;
+    pub(crate) const WIDTH: usize = 7;
+    pub(crate) const HEIGHT: usize = 6;
     const MAX_MOVES: usize = Position::WIDTH * Position::HEIGHT;
+
+    const fn edge_mask(col: usize) -> u64 {
+        let mut mask = 0u64;
+        let mut bit = 0;
+        while bit < Self::WIDTH * Self::HEIGHT {
+            if bit % Self::WIDTH != col {
+                mask |= 1u64 << bit;
+            }
+            bit += 1;
+        }
+        mask
+    }
+
+    pub const NOT_RIGHT_EDGE: u64 = Self::edge_mask(Self::WIDTH - 1);
+    pub const NOT_LEFT_EDGE: u64 = Self::edge_mask(0);
 
     pub fn new() -> Self {
         Position {
@@ -77,7 +92,7 @@ impl Position {
         true
     }
 
-    fn index_from_coord(&self, coord: CoOrdinate) -> u8 {
+    pub fn index_from_coord(&self, coord: CoOrdinate) -> u8 {
         // the bitboard index is determined by the x and y position of the target
         // this is calculated by wrapping the game grid around the width to determine the flat index of the bitmask
 

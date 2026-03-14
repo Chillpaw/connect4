@@ -1,5 +1,6 @@
 mod board;
 mod position;
+mod win_detection;
 
 pub fn run() {
     //TODO: initialise board

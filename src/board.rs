@@ -1,4 +1,7 @@
-use std::ops::{BitAnd, BitOr, BitXor, Not};
+use std::fmt;
+use std::fmt::Formatter;
+use std::ops::{BitAnd, BitOr, BitXor, Not, Shl, Shr};
+use crate::position::{Position, CoOrdinate};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct Bitboard(u64);
@@ -38,6 +41,10 @@ impl Bitboard {
     pub fn count(&self) -> u32 {
         self.0.count_ones()
     }
+
+    pub fn is_not_empty(&self) -> bool {
+        self.0 != 0
+    }
 }
 
 impl Default for Bitboard {
@@ -73,6 +80,35 @@ impl BitXor for Bitboard {
     type Output = Self;
     fn bitxor(self, rhs: Self) -> Self::Output {
         Self(self.0 ^ rhs.0)
+    }
+}
+
+impl Shl<u8> for Bitboard {
+    type Output = Self;
+
+    fn shl(self, rhs: u8) -> Self::Output {
+        Self(self.0 << rhs)
+    }
+}
+
+impl Shr<u8> for Bitboard {
+    type Output = Self;
+
+    fn shr(self, rhs: u8) -> Self::Output {
+        Self(self.0 >> rhs)
+    }
+}
+
+impl fmt::Display for Bitboard {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        for y in (0..Position::HEIGHT).rev() {
+            for x in 0..Position::WIDTH {
+                let index = y * Position::WIDTH + x;
+                write!(f, "{} ", if self.is_set(index as u8) {"1"} else {"0"})?;
+            }
+            writeln!(f)?;
+        }
+        Ok(())
     }
 }
 
