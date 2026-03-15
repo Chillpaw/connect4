@@ -102,7 +102,7 @@ impl Shr<u8> for Bitboard {
 impl fmt::Display for Bitboard {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         for y in (0..Position::HEIGHT).rev() {
-            for x in 0..Position::WIDTH {
+            for x in (0..Position::WIDTH).rev() {
                 let index = y * Position::WIDTH + x;
                 write!(f, "{} ", if self.is_set(index as u8) {"1"} else {"0"})?;
             }

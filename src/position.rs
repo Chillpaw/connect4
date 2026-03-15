@@ -1,3 +1,6 @@
+use std::fmt;
+use std::fmt::Formatter;
+use std::fs::write;
 use crate::board::Bitboard;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -37,7 +40,7 @@ impl CoOrdinate {
 pub struct Position {
     bitboards: [Bitboard; 2],
     heights: [usize; Position::WIDTH],
-    player_to_move: Player
+    pub(crate) player_to_move: Player
 }
 
 impl Position {
@@ -128,6 +131,27 @@ impl Position {
         } else {
             println!("Invalid move.");
         }
+    }
+}
+
+impl fmt::Display for Position {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // show consolidated game board with B for blue and R for red
+        for x in 0..Position::WIDTH {
+            for y in 0..Position::HEIGHT {
+                let index = y * Position::WIDTH + x;
+                write!(f, "{}", if self.bitboards[0].is_set(index as u8)
+                    {"B"}
+                else if self.bitboards[1].is_set(index as u8)
+                    {"R"}
+                else
+                    {"0"})?;
+            }
+            writeln!(f)?;
+        }
+        // show who the current player is
+        writeln!(f, "Current player: {:?}", self.player_to_move())?;
+        Ok(())
     }
 }
 

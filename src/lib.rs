@@ -1,6 +1,8 @@
 mod board;
 mod position;
 mod win_detection;
+mod engine;
+mod move_gen;
 
 pub fn run() {
     //TODO: initialise board
