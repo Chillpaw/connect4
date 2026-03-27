@@ -1,7 +1,10 @@
+use std::fmt;
+use std::fmt::Formatter;
+use std::fs::write;
 use crate::board::Bitboard;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-enum Player {
+pub enum Player {
     Red,
     Blue
 }
@@ -23,7 +26,7 @@ impl Player {
 }
 
 #[derive(Debug)]
-struct CoOrdinate {
+pub struct CoOrdinate {
     x: usize,
     y: usize,
 }
@@ -37,13 +40,29 @@ impl CoOrdinate {
 pub struct Position {
     bitboards: [Bitboard; 2],
     heights: [usize; Position::WIDTH],
-    player_to_move: Player
+    pub(crate) player_to_move: Player
 }
 
 impl Position {
-    const WIDTH: usize = 7;
-    const HEIGHT: usize = 6;
+    pub(crate) const WIDTH: usize = 7;
+    pub(crate) const HEIGHT: usize = 6;
     const MAX_MOVES: usize = Position::WIDTH * Position::HEIGHT;
+    const FULL_BOARD: u64 = (1u64 << (Position::WIDTH * Position::HEIGHT)) - 1;
+
+    const fn edge_mask(col: usize) -> u64 {
+        let mut mask = 0u64;
+        let mut bit = 0;
+        while bit < Self::WIDTH * Self::HEIGHT {
+            if bit % Self::WIDTH != col {
+                mask |= 1u64 << bit;
+            }
+            bit += 1;
+        }
+        mask
+    }
+
+    pub const NOT_RIGHT_EDGE: u64 = Self::edge_mask(Self::WIDTH - 1);
+    pub const NOT_LEFT_EDGE: u64 = Self::edge_mask(0);
 
     pub fn new() -> Self {
         Position {
@@ -77,7 +96,7 @@ impl Position {
         true
     }
 
-    fn index_from_coord(&self, coord: CoOrdinate) -> u8 {
+    pub fn index_from_coord(&self, coord: CoOrdinate) -> u8 {
         // the bitboard index is determined by the x and y position of the target
         // this is calculated by wrapping the game grid around the width to determine the flat index of the bitmask
 
@@ -114,12 +133,39 @@ impl Position {
             println!("Invalid move.");
         }
     }
+
+    pub fn board_full(&self) -> bool {
+        let red_board = self.bitboards[0];
+        let blue_board = self.bitboards[1];
+        (red_board | blue_board) == Bitboard::from_u64(Self::FULL_BOARD)
+    }
+}
+
+impl fmt::Display for Position {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // show consolidated game board with B for blue and R for red
+        for y in (0..Position::HEIGHT).rev() {
+            for x in 0..Position::WIDTH {
+                let index = y * Position::WIDTH + x;
+                write!(f, "{}", if self.bitboards[0].is_set(index as u8)
+                    {"R "}
+                else if self.bitboards[1].is_set(index as u8)
+                    {"B "}
+                else
+                    {". "})?;
+            }
+            writeln!(f)?;
+        }
+        // show who the current player is
+        writeln!(f, "Current player: {:?}", self.player_to_move())?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::board::Bitboard;
-    use crate::position::{Player, Position};
+    use crate::position::*;
 
     #[test]
     fn new_position_is_empty() {
@@ -209,6 +255,18 @@ mod tests {
         for column in 0..Position::WIDTH {
             assert_eq!(pos.heights[column], 1);
         }
+    }
+
+    #[test]
+    fn full_board() {
+        let mut pos = Position::new();
+
+        pos.bitboards[0] = Bitboard::from_u64(0x5555555555555555) & Bitboard::from_u64(Position::FULL_BOARD);
+        pos.bitboards[1] = Bitboard::from_u64(0xAAAAAAAAAAAAAAAA) & Bitboard::from_u64(Position::FULL_BOARD);
+        println!("{}", pos.bitboards[0]);
+        println!("{}", pos.bitboards[1]);
+        println!("{}", (pos.bitboards[0] | pos.bitboards[1]));
+        assert!(pos.board_full())
     }
 
 }
