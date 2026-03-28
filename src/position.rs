@@ -37,6 +37,7 @@ impl CoOrdinate {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct Position {
     bitboards: [Bitboard; 2],
     heights: [usize; Position::WIDTH],
