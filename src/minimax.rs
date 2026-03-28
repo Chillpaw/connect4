@@ -57,10 +57,10 @@ fn find_pairs(b: Bitboard, empties: Bitboard) -> u32 {
 
     // check vertical pairs
     let width = Position::WIDTH as u8;
-    let pairs = b & (b >> width);
+    let pairs = b & (b >> width); // move 'up' the board
 
     // check for open-ended pairs above the vertical pair
-    pairs_count += (((pairs >> width) & empties) & ((pairs >> width * 2) & empties)).count();
+    pairs_count += (pairs & (empties >> (width * 2))).count();
 
     // check left diagonal pairs
     let m = b & Bitboard::from_u64(Position::NOT_LEFT_EDGE);
@@ -127,9 +127,9 @@ mod tests {
     fn pair_found_vertical_central() {
         // this test should find two open-ended pairs for the player
         let player_board = Bitboard::from_u64(0x408); // 0 0 0 1 0 0 0 | 0 0 0 1 0 0 0
-        println!("{}",player_board);
+        println!("player board:\n{}",player_board);
         let empty_board = !player_board;
-        println!("{}", empty_board);
+        println!("empty board:\n{}", empty_board);
         assert_eq!(find_pairs(player_board, empty_board), 1)
     }
 }
