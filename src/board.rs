@@ -212,4 +212,99 @@ mod tests {
 
         assert_eq!(!(a & b), !a | !b);
     }
+
+    #[test]
+    fn de_morgan_second_law() {
+        let a = Bitboard::from_u64(0xF0F0);
+        let b = Bitboard::from_u64(0x0FF0);
+
+        // !(a | b) == !a & !b
+        assert_eq!(!(a | b), !a & !b);
+    }
+
+    #[test]
+    fn empty_constructor() {
+        let b = Bitboard::empty();
+        assert_eq!(b.to_u64(), 0);
+        assert!(!b.is_not_empty());
+    }
+
+    #[test]
+    fn from_u64_roundtrip() {
+        let val = 0xDEAD_BEEF_CAFE_BABEu64;
+        let b = Bitboard::from_u64(val);
+        assert_eq!(b.to_u64(), val);
+    }
+
+    #[test]
+    fn is_not_empty_on_empty() {
+        let b = Bitboard::empty();
+        assert!(!b.is_not_empty());
+    }
+
+    #[test]
+    fn is_not_empty_after_set() {
+        let mut b = Bitboard::empty();
+        b.set(5);
+        assert!(b.is_not_empty());
+    }
+
+    #[test]
+    fn set_idempotent() {
+        let mut b = Bitboard::empty();
+        b.set(7);
+        b.set(7);
+        assert_eq!(b.count(), 1);
+        assert!(b.is_set(7));
+    }
+
+    #[test]
+    fn clear_unset_bit_is_noop() {
+        let mut b = Bitboard::empty();
+        b.clear(5); // clearing an unset bit should have no effect
+        assert_eq!(b.to_u64(), 0);
+        assert_eq!(b.count(), 0);
+    }
+
+    #[test]
+    fn is_set_returns_false_on_unset_bit() {
+        let b = Bitboard::empty();
+        assert!(!b.is_set(0));
+        assert!(!b.is_set(32));
+        assert!(!b.is_set(63));
+    }
+
+    #[test]
+    fn shl_shifts_bits_left() {
+        let b = Bitboard::from_u64(0b0001);
+        let shifted = b << 3;
+        assert_eq!(shifted.to_u64(), 0b1000);
+    }
+
+    #[test]
+    fn shr_shifts_bits_right() {
+        let b = Bitboard::from_u64(0b1000);
+        let shifted = b >> 3;
+        assert_eq!(shifted.to_u64(), 0b0001);
+    }
+
+    #[test]
+    fn count_multiple_bits() {
+        let b = Bitboard::from_u64(0b10110101);
+        assert_eq!(b.count(), 5);
+    }
+
+    #[test]
+    #[should_panic]
+    fn is_set_out_of_bounds_panics() {
+        let b = Bitboard::empty();
+        b.is_set(64);
+    }
+
+    #[test]
+    #[should_panic]
+    fn clear_out_of_bounds_panics() {
+        let mut b = Bitboard::empty();
+        b.clear(64);
+    }
 }

@@ -1,0 +1,1 @@
+// Minimax algorithm implementation (stub)
