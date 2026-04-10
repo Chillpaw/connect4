@@ -1,8 +1,7 @@
 //! Connect Four engine: bitboard state, rules, win detection, and minimax-based move search.
 //!
 //! Run the terminal client with the `connect4` binary (`cargo run`). For programmatic use,
-//! construct a [`Position`](position::Position), call [`try_play`](position::Position::try_play),
-//! and optionally query [`best_move`](minimax::best_move) for the side to move.
+//! construct a [`Position`], call [`Position::try_play`], and optionally query [`best_move`] for the side to move.
 
 pub mod board;
 pub mod engine;

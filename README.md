@@ -37,10 +37,10 @@ cargo run
 ## Crate API (library)
 
 ```rust
-use connect4::{best_move, Player, Position};
+use connect4::{best_move, Position};
 
 let mut pos = Position::new();
-pos.try_play(3)?;
+pos.try_play(3).unwrap();
 let m = best_move(&pos, 6);
 ```
 

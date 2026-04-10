@@ -1,3 +1,5 @@
+//! Game state: two [`Bitboard`]s, per-column heights, and side to move.
+
 use std::fmt;
 use std::fmt::Formatter;
 use crate::board::Bitboard;
@@ -10,6 +12,7 @@ pub enum Player {
 }
 
 impl Player {
+    /// The opposite colour.
     pub fn other(self) -> Self {
         match self {
             Player::Red => Player::Blue,
@@ -17,7 +20,8 @@ impl Player {
         }
     }
 
-    pub fn index(&self) ->  usize {
+    /// `0` = Red, `1` = Blue (matches `Position` bitboard array order).
+    pub fn index(&self) -> usize {
         match self {
             Player::Red => 0,
             Player::Blue => 1,
@@ -28,10 +32,13 @@ impl Player {
 /// Returned when a disc cannot be placed in the requested column.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PlayError {
+    /// Column index is not in `0 .. WIDTH`.
     ColumnOutOfBounds,
+    /// Column already has `HEIGHT` discs.
     ColumnFull,
 }
 
+/// Integer cell address in column-major grid space (`x` = column, `y` = row from bottom).
 #[derive(Debug)]
 pub struct CoOrdinate {
     x: usize,
@@ -44,6 +51,7 @@ impl CoOrdinate {
     }
 }
 
+/// Full position: both players' discs, column fill heights, and who moves next.
 #[derive(Copy, Clone)]
 pub struct Position {
     bitboards: [Bitboard; 2],
@@ -52,8 +60,11 @@ pub struct Position {
 }
 
 impl Position {
+    /// Number of columns (standard Connect Four).
     pub(crate) const WIDTH: usize = 7;
+    /// Number of rows.
     pub(crate) const HEIGHT: usize = 6;
+    /// Bit mask with `WIDTH * HEIGHT` low bits set (valid play area inside a `u64`).
     pub(crate) const FULL_BOARD: u64 = (1u64 << (Position::WIDTH * Position::HEIGHT)) - 1;
 
     const fn edge_mask(col: usize) -> u64 {
@@ -68,9 +79,12 @@ impl Position {
         mask
     }
 
+    /// Mask clearing the rightmost column (avoids illegal horizontal wraps in bit scans).
     pub const NOT_RIGHT_EDGE: u64 = Self::edge_mask(Self::WIDTH - 1);
+    /// Mask clearing the leftmost column.
     pub const NOT_LEFT_EDGE: u64 = Self::edge_mask(0);
 
+    /// Empty board; Red moves first.
     pub fn new() -> Self {
         Position {
             bitboards: [Bitboard::empty(); 2],
@@ -79,18 +93,22 @@ impl Position {
         }
     }
 
+    /// Side that would place the next disc if the game is not over.
     pub fn player_to_move(&self) -> Player {
         self.player_to_move
     }
 
+    /// Occupancy for `player` only.
     pub fn get_bitboard(&self, player: Player) -> Bitboard {
         self.bitboards[player.index()]
     }
 
+    /// `true` if `column` is in range and not full.
     pub fn can_play(&self, column: usize) -> bool {
         column < Self::WIDTH && self.heights[column] < Self::HEIGHT
     }
 
+    /// Flat bit index for `coord` under this board's width.
     pub fn index_from_coord(&self, coord: CoOrdinate) -> u8 {
         // the bitboard index is determined by the x and y position of the target
         // this is calculated by wrapping the game grid around the width to determine the flat index of the bitmask
@@ -128,6 +146,7 @@ impl Position {
         Ok(())
     }
 
+    /// Every cell in the play area is occupied.
     pub fn board_full(&self) -> bool {
         let red_board = self.bitboards[0];
         let blue_board = self.bitboards[1];

@@ -1,8 +1,11 @@
+//! Interactive terminal driver: prompts for columns and updates [`Position`].
+
 use std::cmp::PartialEq;
 use std::io;
 use crate::position::{Player, Position};
 use crate::win_detection::is_win;
 
+/// High-level outcome of the in-terminal session.
 #[derive(Eq, PartialEq)]
 pub enum GameState {
     InProgress,
@@ -11,11 +14,13 @@ pub enum GameState {
 }
 
 impl GameState {
+    /// Fresh game, not yet won or drawn.
     pub fn new() -> Self {
         GameState::InProgress
     }
 }
 
+/// Clears the screen each turn, reads column indices from stdin, and stops on win or draw.
 pub fn game_start() {
     let mut game_state = GameState::new();
     let mut pos = Position::new();

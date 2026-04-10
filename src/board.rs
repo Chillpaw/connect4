@@ -1,8 +1,13 @@
+//! [`Bitboard`]: a 64-bit occupancy mask for one player's discs on the 7×6 grid.
+//!
+//! Bit indices follow `index = row * WIDTH + column` with row `0` at the bottom of the board.
+
 use std::fmt;
 use std::fmt::Formatter;
 use std::ops::{BitAnd, BitOr, BitXor, Not, Shl, Shr};
 use crate::position::Position;
 
+/// Packed set of occupied cells for a single player (`true` per set bit).
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct Bitboard(u64);
 
@@ -11,37 +16,45 @@ impl Bitboard {
         assert!(index < 64, "bit index out of range: {index}");
     }
 
+    /// Empty board (all bits clear).
     pub fn empty() -> Self {
         Bitboard(0)
     }
 
+    /// Wraps a raw mask; only the lowest `WIDTH * HEIGHT` bits are meaningful for this game.
     pub fn from_u64(value: u64) -> Self {
         Bitboard(value)
     }
 
+    /// Raw `u64` payload.
     pub fn to_u64(&self) -> u64 {
         self.0
     }
 
+    /// Sets the bit at `index` (must be `< 64`).
     pub fn set(&mut self, index: u8) {
         Self::validate_index(index);
         self.0 |= 1u64 << index;
     }
 
+    /// Clears the bit at `index`.
     pub fn clear(&mut self, index: u8) {
         Self::validate_index(index);
         self.0 &= !(1u64 << index);
     }
 
+    /// Returns whether the bit at `index` is set.
     pub fn is_set(&self, index: u8) -> bool {
         Self::validate_index(index);
         (self.0 & (1u64 << index)) != 0
     }
 
+    /// Population count (Hamming weight).
     pub fn count(&self) -> u32 {
         self.0.count_ones()
     }
 
+    /// `true` if any bit is set.
     pub fn is_not_empty(&self) -> bool {
         self.0 != 0
     }
