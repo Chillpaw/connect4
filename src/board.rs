@@ -1,7 +1,7 @@
 use std::fmt;
 use std::fmt::Formatter;
 use std::ops::{BitAnd, BitOr, BitXor, Not, Shl, Shr};
-use crate::position::{Position, CoOrdinate};
+use crate::position::Position;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct Bitboard(u64);

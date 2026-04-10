@@ -1,105 +1,181 @@
+//! Minimax search with alpha–beta pruning and a light heuristic based on open pairs of discs.
+//!
+//! Scores are always from the perspective of the player chosen as `perspective` at the root
+//! (the side to move when [`best_move`](fn@best_move) is called).
+
 use crate::board::Bitboard;
-use crate::position::{Position, Player};
+use crate::move_gen::legal_columns_ordered;
+use crate::position::{Player, Position};
 use crate::win_detection::is_win;
 
 const WINNING_SCORE: f32 = 1.0;
 const LOSING_SCORE: f32 = -1.0;
 const DRAW_SCORE: f32 = 0.0;
-const THREE_IN_A_ROW_PLAYER: f32 = 0.00005;
-const TWO_IN_A_ROW: f32 = 0.00001;
-const THREE_IN_A_ROW_OPPONENT: f32 = -0.00008;
+const PAIR_WEIGHT_SELF: f32 = 0.00001;
+const PAIR_WEIGHT_OPP: f32 = 0.000012;
 
-fn minimax(pos: Position, depth: usize, maximising_player: Player) -> f32 {
-    let mut score = 0.0;
-    //check if depth is zero or the board is in a winning/draw state
-    if is_terminal_state(&pos) || (depth == 0) {
-        score = evaluate_board(&pos, maximising_player);
-        return score
+/// Returns a strong legal move for the side to move, searching `depth` plies from each child.
+///
+/// `depth` counts full plies to search **after** making a candidate move (the child position is
+/// evaluated with `depth - 1`, and so on). With `depth == 0`, only the heuristic is used on
+/// resulting positions.
+///
+/// Returns [`None`] only when there are no legal moves.
+pub fn best_move(pos: &Position, depth: usize) -> Option<usize> {
+    let root = pos.player_to_move();
+    let mut best: Option<usize> = None;
+    let mut best_score = f32::NEG_INFINITY;
+
+    for col in legal_columns_ordered(pos) {
+        let mut child = *pos;
+        if child.try_play(col).is_err() {
+            continue;
+        }
+        let score = search(
+            child,
+            depth.saturating_sub(1),
+            f32::NEG_INFINITY,
+            f32::INFINITY,
+            root,
+        );
+        if score > best_score || best.is_none() {
+            best_score = score;
+            best = Some(col);
+        }
     }
 
-    score
+    best
 }
 
-fn is_terminal_state(&pos: &Position) -> bool {
-    pos.board_full()
-        || is_win(pos.get_bitboard(Player::Red))
-        || is_win(pos.get_bitboard(Player::Blue))
+/// Static evaluation and recursive minimax with alpha–beta pruning.
+fn search(
+    pos: Position,
+    depth: usize,
+    mut alpha: f32,
+    mut beta: f32,
+    perspective: Player,
+) -> f32 {
+    if let Some(s) = terminal_score(&pos, perspective) {
+        return s;
+    }
+    if depth == 0 {
+        return heuristic_eval(&pos, perspective);
+    }
+
+    let to_move = pos.player_to_move();
+    let cols: Vec<usize> = legal_columns_ordered(&pos).collect();
+
+    if to_move == perspective {
+        let mut value = f32::NEG_INFINITY;
+        for col in cols {
+            let mut p = pos;
+            if p.try_play(col).is_err() {
+                continue;
+            }
+            let score = search(p, depth - 1, alpha, beta, perspective);
+            value = value.max(score);
+            alpha = alpha.max(value);
+            if beta <= alpha {
+                break;
+            }
+        }
+        value
+    } else {
+        let mut value = f32::INFINITY;
+        for col in cols {
+            let mut p = pos;
+            if p.try_play(col).is_err() {
+                continue;
+            }
+            let score = search(p, depth - 1, alpha, beta, perspective);
+            value = value.min(score);
+            beta = beta.min(value);
+            if beta <= alpha {
+                break;
+            }
+        }
+        value
+    }
 }
 
-fn evaluate_board(&pos: &Position, player: Player) -> f32 {
-    let mut score = 0.0;
+/// Win / loss / draw from `perspective` if the game has ended; otherwise [`None`].
+fn terminal_score(pos: &Position, perspective: Player) -> Option<f32> {
+    let red = pos.get_bitboard(Player::Red);
+    let blue = pos.get_bitboard(Player::Blue);
 
-    let max_board = pos.get_bitboard(player);
-    let empty_board = !(pos.get_bitboard(player) | pos.get_bitboard(player.other()));
-
-
-
-    score
+    if is_win(red) {
+        return Some(if perspective == Player::Red {
+            WINNING_SCORE
+        } else {
+            LOSING_SCORE
+        });
+    }
+    if is_win(blue) {
+        return Some(if perspective == Player::Blue {
+            WINNING_SCORE
+        } else {
+            LOSING_SCORE
+        });
+    }
+    if pos.board_full() {
+        return Some(DRAW_SCORE);
+    }
+    None
 }
 
-/// look for pairs which have open-ended pairs either side
-/// for a horizontal case it would look like
-/// 0 0 1 1 0 0 0 >> 1 -> 0 0 0 1 0 0 0 after AND with original board
-/// 1 1 0 0 1 1 1 empty board after inversion.
-/// 1 1 0 0 1 1 1 >> 1 -> 0 1 0 0 0 1 1 after shift left and AND. We can use index -2 and 2 of paired bit to signify empty pairs either side of the player's pair
-///
-///
-///
+fn occupied_mask(pos: &Position) -> Bitboard {
+    pos.get_bitboard(Player::Red) | pos.get_bitboard(Player::Blue)
+}
 
-fn find_pairs(b: Bitboard, e: Bitboard) -> u32 {
+/// Heuristic leaf evaluation: favours open pairs for `perspective` and penalises the opponent's.
+fn heuristic_eval(pos: &Position, perspective: Player) -> f32 {
+    let occ = occupied_mask(pos);
+    let empties = (!occ) & Bitboard::from_u64(Position::FULL_BOARD);
+    let mine = pos.get_bitboard(perspective);
+    let opp = pos.get_bitboard(perspective.other());
+
+    let pair_mine = find_pairs(mine, empties) as f32;
+    let pair_opp = find_pairs(opp, empties) as f32;
+
+    pair_mine * PAIR_WEIGHT_SELF - pair_opp * PAIR_WEIGHT_OPP
+}
+
+/// Counts two-disc patterns that can extend toward an empty cell (used by [`heuristic_eval`]).
+fn find_pairs(b: Bitboard, empties: Bitboard) -> u32 {
     let mut pairs_count = 0;
-
-    pairs_count += count_horizontal_pairs(b, e);
-    pairs_count += count_vertical_pairs(b, e);
-    pairs_count += count_diag_left_pairs(b, e);
-    pairs_count += count_diag_right_pairs(b, e);
-
+    pairs_count += count_horizontal_pairs(b, empties);
+    pairs_count += count_vertical_pairs(b, empties);
+    pairs_count += count_diag_left_pairs(b, empties);
+    pairs_count += count_diag_right_pairs(b, empties);
     pairs_count
 }
 
 fn count_horizontal_pairs(b: Bitboard, empties: Bitboard) -> u32 {
-    let mut pairs_count = 0;
-
-    // check horizontal pairs
     let m = b & Bitboard::from_u64(Position::NOT_RIGHT_EDGE);
     let pairs = m & (b >> 1);
-
-    // check for open-ended pairs either side
-    pairs_count += ((pairs << 2) & empties & Bitboard::from_u64(Position::NOT_LEFT_EDGE)).count(); // left side
-    pairs_count += ((pairs >> 1) & empties).count(); // right side
-
+    let mut pairs_count = 0;
+    pairs_count += ((pairs << 2) & empties & Bitboard::from_u64(Position::NOT_LEFT_EDGE)).count();
+    pairs_count += ((pairs >> 1) & empties).count();
     pairs_count
 }
 
 fn count_vertical_pairs(b: Bitboard, empties: Bitboard) -> u32 {
-    let mut pairs_count = 0;
-
-    // check vertical pairs
     let width = Position::WIDTH as u8;
-    let pairs = b & (b >> width); // move 'up' the board
-
-    // check for open-ended pairs above the vertical pair
-    pairs_count += (pairs & (empties >> (width * 2))).count(); // not required as below will always be blocked and top will always be open
-
-    pairs_count
+    let pairs = b & (b >> width);
+    (pairs & (empties >> (width * 2))).count()
 }
 
 fn count_diag_left_pairs(b: Bitboard, empties: Bitboard) -> u32 {
-
-    // check left diagonal pairs
     let mask = Bitboard::from_u64(Position::NOT_LEFT_EDGE);
     let m = b & mask;
     let offset = Position::WIDTH as u8 - 1;
     let pairs = m & (b >> offset);
     let one_step_ahead = pairs & (empties >> offset * 2);
     let two_steps_ahead = pairs & (empties >> offset * 3);
-
     (pairs & one_step_ahead & two_steps_ahead).count()
 }
 
 fn count_diag_right_pairs(b: Bitboard, empties: Bitboard) -> u32 {
-
-    // Pairs along the \ diagonal use offset (WIDTH + 1); mask like win_detection::diag_right_win.
     let mask = Bitboard::from_u64(Position::NOT_RIGHT_EDGE);
     let m = b & mask;
     let offset = Position::WIDTH as u8 + 1;
@@ -107,123 +183,110 @@ fn count_diag_right_pairs(b: Bitboard, empties: Bitboard) -> u32 {
     let one_step_ahead = pairs & (empties >> offset * 2);
     let two_steps_ahead = pairs & (empties >> offset * 3);
     let one_step_behind = pairs & (empties << offset * 2);
-
     ((one_step_ahead & two_steps_ahead) | (one_step_behind & one_step_ahead)).count()
 }
 
 #[cfg(test)]
 mod tests {
+    use super::{best_move, find_pairs};
     use crate::board::Bitboard;
-    use crate::minimax::find_pairs;
-    use crate::position::Position;
+    use crate::position::{Player, Position};
+
+    #[test]
+    fn best_move_finds_immediate_win() {
+        let mut pos = Position::new();
+        pos.try_play(0).unwrap();
+        pos.try_play(0).unwrap();
+        pos.try_play(1).unwrap();
+        pos.try_play(1).unwrap();
+        pos.try_play(2).unwrap();
+        pos.try_play(2).unwrap();
+        assert_eq!(pos.player_to_move(), Player::Red);
+        assert_eq!(best_move(&pos, 8), Some(3));
+    }
+
+    #[test]
+    fn best_move_opening_returns_legal_center_bias() {
+        let pos = Position::new();
+        let col = best_move(&pos, 6).expect("opening has moves");
+        assert!(pos.can_play(col));
+        assert_eq!(col, 3);
+    }
 
     #[test]
     fn pair_found_horizontal() {
-        // this test should find two open-ended pairs for the player
-        let player_board = Bitboard::from_u64(0x18); // 0 0 1 1 0 0 0
-        println!("{}",player_board);
+        let player_board = Bitboard::from_u64(0x18);
         let empty_board = !player_board;
-        println!("{}", empty_board);
-        assert_eq!(find_pairs(player_board, empty_board), 2)
+        assert_eq!(find_pairs(player_board, empty_board), 2);
     }
 
     #[test]
     fn pairs_not_found_horizontal() {
-        // this test should find two open-ended pairs for the player
-        let player_board = Bitboard::from_u64(0x18); // 0 0 1 1 0 0 0
-        println!("{}",player_board);
-        let empty_board = Bitboard::from_u64(0x5b); // 1 0 1 1 0 1 1
-        println!("{}", empty_board);
-        assert_eq!(find_pairs(player_board, empty_board), 0)
+        let player_board = Bitboard::from_u64(0x18);
+        let empty_board = Bitboard::from_u64(0x5b);
+        assert_eq!(find_pairs(player_board, empty_board), 0);
     }
 
     #[test]
     fn pair_found_horizontal_left_edge() {
-        // this test should find one open-ended pair for the player
-        let player_board = Bitboard::from_u64(0x60); // 1 1 0 0 0 0 0
-        println!("{}",player_board);
+        let player_board = Bitboard::from_u64(0x60);
         let empty_board = !player_board;
-        println!("{}", empty_board);
-        assert_eq!(find_pairs(player_board, empty_board), 1)
+        assert_eq!(find_pairs(player_board, empty_board), 1);
     }
 
     #[test]
     fn pair_found_horizontal_right_edge() {
-        // this test should find one open-ended pair for the player
-        let player_board = Bitboard::from_u64(0x3); // 0 0 0 0 0 1 1
-        println!("{}",player_board);
+        let player_board = Bitboard::from_u64(0x3);
         let empty_board = !player_board;
-        println!("{}", empty_board);
-        assert_eq!(find_pairs(player_board, empty_board), 1)
+        assert_eq!(find_pairs(player_board, empty_board), 1);
     }
 
     #[test]
     fn pair_found_vertical_central() {
-        // this test should find two open-ended pairs for the player
-        let player_board = Bitboard::from_u64(0x408); // 0 0 0 1 0 0 0 | 0 0 0 1 0 0 0
-        println!("player board:\n{}",player_board);
+        let player_board = Bitboard::from_u64(0x408);
         let empty_board = !player_board;
-        println!("empty board:\n{}", empty_board);
-        assert_eq!(find_pairs(player_board, empty_board), 1)
+        assert_eq!(find_pairs(player_board, empty_board), 1);
     }
 
     #[test]
     fn pair_found_vertical_left_edge() {
-        // this test should find two open-ended pairs for the player
-        let player_board = Bitboard::from_u64(0x2040); // 1 0 0 0 0 0 0 | 1 0 0 0 0 0 0
-        println!("player board:\n{}",player_board);
+        let player_board = Bitboard::from_u64(0x2040);
         let empty_board = !player_board;
-        println!("empty board:\n{}", empty_board);
-        assert_eq!(find_pairs(player_board, empty_board), 1)
+        assert_eq!(find_pairs(player_board, empty_board), 1);
     }
 
     #[test]
     fn pair_found_vertical_right_edge() {
-        // this test should find two open-ended pairs for the player
-        let player_board = Bitboard::from_u64(0x081); // 0 0 0 0 0 0 1 | 0 0 0 0 0 0 1
-        println!("player board:\n{}",player_board);
+        let player_board = Bitboard::from_u64(0x081);
         let empty_board = !player_board;
-        println!("empty board:\n{}", empty_board);
-        assert_eq!(find_pairs(player_board, empty_board), 1)
+        assert_eq!(find_pairs(player_board, empty_board), 1);
     }
 
     #[test]
     fn pair_found_diag_bottom_left() {
-        // this test should find two open-ended pairs for the player
-        let player_board = Bitboard::from_u64(0x1040); // 0 1.0 0 0 0.0 | 1 0 0.0 0 0 0
-        println!("player board:\n{}",player_board);
+        let player_board = Bitboard::from_u64(0x1040);
         let empty_board = !player_board;
-        println!("empty board:\n{}", empty_board);
-        assert_eq!(find_pairs(player_board, empty_board), 1)
+        assert_eq!(find_pairs(player_board, empty_board), 1);
     }
 
     #[test]
     fn pair_found_diag_bottom_right() {
-        // this test should find two open-ended pairs for the player
-        let player_board = Bitboard::from_u64(0x101); // 0 0.0 0 0 1.0 | 0 0 0.0 0 0 1
-        println!("player board:\n{}",player_board);
+        let player_board = Bitboard::from_u64(0x101);
         let empty_board = !player_board;
-        println!("empty board:\n{}", empty_board);
-        assert_eq!(find_pairs(player_board, empty_board), 1)
+        assert_eq!(find_pairs(player_board, empty_board), 1);
     }
 
     #[test]
     fn pair_found_diag_top_left() {
-        // this test should find two open-ended pairs for the player
-        let player_board = Bitboard::from_u64(0x20200000000);
-        println!("player board:\n{}",player_board);
+        let player_board = Bitboard::from_u64(0x20200000000u64);
         let empty_board = !player_board;
-        println!("empty board:\n{}", empty_board);
-        assert_eq!(find_pairs(player_board, empty_board), 1)
+        assert_eq!(find_pairs(player_board, empty_board), 1);
     }
 
     #[test]
     fn pair_found_diag_top_right() {
-        // this test should find two open-ended pairs for the player
-        let player_board = Bitboard::from_u64(0x820000000);
-        println!("player board:\n{}",player_board);
+        let player_board = Bitboard::from_u64(0x820000000u64);
         let empty_board = !player_board;
-        println!("empty board:\n{}", empty_board);
-        assert_eq!(find_pairs(player_board, empty_board), 1)
+        assert_eq!(find_pairs(player_board, empty_board), 1);
     }
 }

@@ -1,14 +1,14 @@
+//! Legal moves for a [`Position`](crate::position::Position), ordered for search (center columns first).
+
 use crate::position::Position;
 
-fn valid_moves(position: Position) -> [bool; Position::WIDTH] {
-    let mut valid_moves = [false; Position::WIDTH];
+/// Column indices from center outward; strong default move ordering for alpha–beta.
+const COLUMN_ORDER: [usize; Position::WIDTH] = [3, 2, 4, 1, 5, 0, 6];
 
-    for col in 0..Position::WIDTH {
-        if Position::can_play(&position, col) {
-            valid_moves[col] = true;
-        }
-    }
-
-    valid_moves
+/// Yields legal columns in [`COLUMN_ORDER`].
+pub fn legal_columns_ordered(pos: &Position) -> impl Iterator<Item = usize> + '_ {
+    COLUMN_ORDER
+        .iter()
+        .copied()
+        .filter(move |&c| pos.can_play(c))
 }
-
