@@ -1,8 +1,8 @@
 use std::fmt;
 use std::fmt::Formatter;
-use std::fs::write;
 use crate::board::Bitboard;
 
+/// Side to move or disc colour.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Player {
     Red,
@@ -23,6 +23,13 @@ impl Player {
             Player::Blue => 1,
         }
     }
+}
+
+/// Returned when a disc cannot be placed in the requested column.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlayError {
+    ColumnOutOfBounds,
+    ColumnFull,
 }
 
 #[derive(Debug)]
@@ -82,19 +89,7 @@ impl Position {
     }
 
     pub fn can_play(&self, column: usize) -> bool {
-        if column >= Self::WIDTH {
-            println!("Invalid column index {column}.");
-            return false
-        }
-
-        let height = self.heights[column];
-        if height >= Self::HEIGHT {
-            println!("Column {column} is full");
-            return false
-        }
-
-        //if the column index is within bounds and the given column is not full then return valid state
-        true
+        column < Self::WIDTH && self.heights[column] < Self::HEIGHT
     }
 
     pub fn index_from_coord(&self, coord: CoOrdinate) -> u8 {
@@ -116,23 +111,22 @@ impl Position {
         (coord.y * Self::WIDTH + coord.x) as u8
     }
 
-    pub fn play(&mut self, column: usize) {
-        if self.can_play(column) {
-            //update the current player's bitboard to record their move
-            let player_index = self.player_to_move.index();
-            let coord = CoOrdinate::new(column, self.heights[column]);
-            let index = self.index_from_coord(coord);
-            self.bitboards[player_index].set(index);
-
-            //increment board height occupancy
-            self.heights[column] += 1;
-            //update player to move to next player
-            self.player_to_move = self.player_to_move.other();
-
-
-        } else {
-            println!("Invalid move.");
+    /// Places a disc for the current player in `column`, or returns why the move is illegal.
+    pub fn try_play(&mut self, column: usize) -> Result<(), PlayError> {
+        if column >= Self::WIDTH {
+            return Err(PlayError::ColumnOutOfBounds);
         }
+        if self.heights[column] >= Self::HEIGHT {
+            return Err(PlayError::ColumnFull);
+        }
+
+        let player_index = self.player_to_move.index();
+        let coord = CoOrdinate::new(column, self.heights[column]);
+        let index = self.index_from_coord(coord);
+        self.bitboards[player_index].set(index);
+        self.heights[column] += 1;
+        self.player_to_move = self.player_to_move.other();
+        Ok(())
     }
 
     pub fn board_full(&self) -> bool {
@@ -183,11 +177,12 @@ mod tests {
     fn add_to_column() {
         let mut pos = Position::new();
 
-        for turn in 0..(Position::HEIGHT + 4) {
-            assert_eq!(pos.heights[0], turn.clamp(0,Position::HEIGHT));
-            println!("{:?}", pos.heights[0]);
-            pos.play(0);
+        for turn in 0..Position::HEIGHT {
+            assert_eq!(pos.heights[0], turn);
+            assert!(pos.try_play(0).is_ok());
         }
+        assert_eq!(pos.heights[0], Position::HEIGHT);
+        assert_eq!(pos.try_play(0), Err(PlayError::ColumnFull));
     }
 
     #[test]
@@ -228,7 +223,7 @@ mod tests {
             } else {
                 assert_eq!(pos.player_to_move.index(), 1); //second turn Blue
             }
-            pos.play(0);
+            pos.try_play(0).unwrap();
         }
     }
 
@@ -237,11 +232,11 @@ mod tests {
         let mut pos = Position::new();
 
         //Red's turn
-        pos.play(2);
+        pos.try_play(2).unwrap();
         assert_eq!(pos.get_bitboard(Player::Red), Bitboard::from_u64(0b100));
 
         //Blue's turn
-        pos.play(2);
+        pos.try_play(2).unwrap();
         assert_eq!(pos.get_bitboard(Player::Blue), Bitboard::from_u64(0x200));
     }
 
@@ -250,7 +245,7 @@ mod tests {
         let mut pos = Position::new();
 
         for column in 0..(Position::WIDTH + 4) {
-            pos.play(column);
+            let _ = pos.try_play(column);
         }
 
         for column in 0..Position::WIDTH {

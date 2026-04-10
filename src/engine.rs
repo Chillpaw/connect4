@@ -38,16 +38,15 @@ pub fn game_start() {
         io::stdin().read_line(&mut column_input).expect("Failed to read column");
         let column = column_input.trim().parse().expect("Please enter a valid number");
         //play move if valid
-        let current_player = pos.player_to_move(); //set the variable as it will be updated when the play function is successful
-        pos.play(column);
+        let current_player = pos.player_to_move();
+        if pos.try_play(column).is_err() {
+            continue;
+        }
         //check if a player has won or draw
         if is_win(pos.get_bitboard(current_player)) {
-            println!("Player: {:?} wins!", current_player); // other player to pick the player that just moved
+            println!("Player: {:?} wins!", current_player);
             game_state = GameState::Won(current_player);
-        }
-
-        //check if the board is full (draw)
-        if pos.board_full() {
+        } else if pos.board_full() {
             println!("Draw.");
             game_state = GameState::Draw;
         }
