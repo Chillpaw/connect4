@@ -35,8 +35,17 @@ pub fn game_start() {
         //prompt current player input
         println!("Enter which column you wish to place your token (0-6):");
         let mut column_input = String::new();
-        io::stdin().read_line(&mut column_input).expect("Failed to read column");
-        let column = column_input.trim().parse().expect("Please enter a valid number");
+        if io::stdin().read_line(&mut column_input).is_err() {
+            println!("Could not read input; try again.");
+            continue;
+        }
+        let column: usize = match column_input.trim().parse() {
+            Ok(n) => n,
+            Err(_) => {
+                println!("Please enter a number between 0 and 6.");
+                continue;
+            }
+        };
         //play move if valid
         let current_player = pos.player_to_move();
         if pos.try_play(column).is_err() {
