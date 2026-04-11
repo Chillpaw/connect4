@@ -283,4 +283,97 @@ mod tests {
         assert!(pos.board_full())
     }
 
+    #[test]
+    fn player_index_values() {
+        assert_eq!(Player::Red.index(), 0);
+        assert_eq!(Player::Blue.index(), 1);
+    }
+
+    #[test]
+    fn get_bitboard_empty_position() {
+        let pos = Position::new();
+        assert_eq!(pos.get_bitboard(Player::Red).to_u64(), 0);
+        assert_eq!(pos.get_bitboard(Player::Blue).to_u64(), 0);
+    }
+
+    #[test]
+    fn board_not_full_initially() {
+        let pos = Position::new();
+        assert!(!pos.board_full());
+    }
+
+    #[test]
+    fn board_not_full_after_partial_play() {
+        let mut pos = Position::new();
+        // Play one piece in each column — board should still not be full
+        for col in 0..Position::WIDTH {
+            pos.try_play(col).unwrap();
+        }
+        assert!(!pos.board_full());
+    }
+
+    #[test]
+    fn full_column_cannot_play() {
+        let mut pos = Position::new();
+        // Fill column 3 completely (HEIGHT pieces, alternating players)
+        for _ in 0..Position::HEIGHT {
+            pos.try_play(3).unwrap();
+        }
+        assert!(!pos.can_play(3));
+    }
+
+    #[test]
+    fn play_invalid_move_does_not_change_state() {
+        let mut pos = Position::new();
+        assert_eq!(
+            pos.try_play(Position::WIDTH),
+            Err(PlayError::ColumnOutOfBounds)
+        );
+        assert_eq!(pos.player_to_move(), Player::Red);
+        assert_eq!(pos.get_bitboard(Player::Red).to_u64(), 0);
+        assert_eq!(pos.get_bitboard(Player::Blue).to_u64(), 0);
+    }
+
+    #[test]
+    fn play_into_full_column_does_not_advance_player() {
+        let mut pos = Position::new();
+        // Fill column 0
+        for _ in 0..Position::HEIGHT {
+            pos.try_play(0).unwrap();
+        }
+        let player_before = pos.player_to_move();
+        let height_before = pos.heights[0];
+        assert_eq!(pos.try_play(0), Err(PlayError::ColumnFull));
+        assert_eq!(pos.player_to_move(), player_before);
+        assert_eq!(pos.heights[0], height_before);
+    }
+
+    #[test]
+    fn index_from_coord_origin() {
+        let pos = Position::new();
+        let coord = CoOrdinate::new(0, 0);
+        assert_eq!(pos.index_from_coord(coord), 0);
+    }
+
+    #[test]
+    fn index_from_coord_calculation() {
+        let pos = Position::new();
+        // (x: 3, y: 1) -> 1 * 7 + 3 = 10
+        assert_eq!(pos.index_from_coord(CoOrdinate::new(3, 1)), 10);
+        // (x: 0, y: 1) -> 1 * 7 + 0 = 7
+        assert_eq!(pos.index_from_coord(CoOrdinate::new(0, 1)), 7);
+        // (x: 6, y: 5) -> 5 * 7 + 6 = 41 (top-right corner)
+        assert_eq!(pos.index_from_coord(CoOrdinate::new(6, 5)), 41);
+    }
+
+    #[test]
+    fn player_to_move_method_returns_correct_player() {
+        let mut pos = Position::new();
+        assert_eq!(pos.player_to_move(), Player::Red);
+        pos.try_play(0).unwrap();
+        assert_eq!(pos.player_to_move(), Player::Blue);
+        pos.try_play(0).unwrap();
+        assert_eq!(pos.player_to_move(), Player::Red);
+    }
+
 }

@@ -145,6 +145,70 @@ mod tests {
         println!("{}", b);
         assert!(is_win(b))
     }
+
+    #[test]
+    fn vertical_three_in_a_row_no_win() {
+        let mut b = Bitboard::empty();
+        let width = Position::WIDTH as u8;
+        // 3 vertical pieces in column 3 — not enough for a win
+        b.set(3);
+        b.set(3 + width);
+        b.set(3 + 2 * width);
+        assert!(!is_win(b));
+    }
+
+    #[test]
+    fn diagonal_three_in_a_row_no_win() {
+        let mut b = Bitboard::empty();
+        let width = Position::WIDTH as u8;
+        // 3 diagonal pieces (/) starting at column 1, row 0
+        b.set(1);
+        b.set(1 + 1 + width);
+        b.set(1 + 2 + 2 * width);
+        assert!(!is_win(b));
+    }
+
+    #[test]
+    fn vertical_win_middle_column() {
+        let mut b = Bitboard::empty();
+        let width = Position::WIDTH as u8;
+        // 4 vertical pieces in column 3 (middle column)
+        for row in 0..4u8 {
+            b.set(3 + row * width);
+        }
+        println!("{}", b);
+        assert!(is_win(b));
+    }
+
+    #[test]
+    fn horizontal_win_middle_row() {
+        let mut b = Bitboard::empty();
+        let width = Position::WIDTH as u8;
+        // 4 horizontal pieces in row 3, columns 1-4
+        for col in 1..5u8 {
+            b.set(col + 3 * width);
+        }
+        println!("{}", b);
+        assert!(is_win(b));
+    }
+
+    #[test]
+    fn pieces_with_gap_no_win() {
+        let mut b = Bitboard::empty();
+        // Bits 0, 1, 3, 4 — gap at bit 2 breaks any 4-in-a-row
+        b.set(0);
+        b.set(1);
+        b.set(3);
+        b.set(4);
+        assert!(!is_win(b));
+    }
+
+    #[test]
+    fn single_piece_no_win() {
+        let mut b = Bitboard::empty();
+        b.set(0);
+        assert!(!is_win(b));
+    }
 }
 
 
