@@ -1,8 +1,11 @@
+//! Interactive terminal driver: prompts for columns and updates [`Position`].
+
 use std::cmp::PartialEq;
 use std::io;
 use crate::position::{Player, Position};
 use crate::win_detection::is_win;
 
+/// High-level outcome of the in-terminal session.
 #[derive(Eq, PartialEq)]
 pub enum GameState {
     InProgress,
@@ -11,11 +14,13 @@ pub enum GameState {
 }
 
 impl GameState {
+    /// Fresh game, not yet won or drawn.
     pub fn new() -> Self {
         GameState::InProgress
     }
 }
 
+/// Clears the screen each turn, reads column indices from stdin, and stops on win or draw.
 pub fn game_start() {
     let mut game_state = GameState::new();
     let mut pos = Position::new();
@@ -35,19 +40,27 @@ pub fn game_start() {
         //prompt current player input
         println!("Enter which column you wish to place your token (0-6):");
         let mut column_input = String::new();
-        io::stdin().read_line(&mut column_input).expect("Failed to read column");
-        let column = column_input.trim().parse().expect("Please enter a valid number");
+        if io::stdin().read_line(&mut column_input).is_err() {
+            println!("Could not read input; try again.");
+            continue;
+        }
+        let column: usize = match column_input.trim().parse() {
+            Ok(n) => n,
+            Err(_) => {
+                println!("Please enter a number between 0 and 6.");
+                continue;
+            }
+        };
         //play move if valid
-        let current_player = pos.player_to_move(); //set the variable as it will be updated when the play function is successful
-        pos.play(column);
+        let current_player = pos.player_to_move();
+        if pos.try_play(column).is_err() {
+            continue;
+        }
         //check if a player has won or draw
         if is_win(pos.get_bitboard(current_player)) {
-            println!("Player: {:?} wins!", current_player); // other player to pick the player that just moved
+            println!("Player: {:?} wins!", current_player);
             game_state = GameState::Won(current_player);
-        }
-
-        //check if the board is full (draw)
-        if pos.board_full() {
+        } else if pos.board_full() {
             println!("Draw.");
             game_state = GameState::Draw;
         }
