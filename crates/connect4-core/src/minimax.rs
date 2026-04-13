@@ -1,3 +1,4 @@
+<<<<<<< minimax-implementation
 //! Minimax search with alpha–beta pruning and a light heuristic based on open pairs of discs.
 //!
 //! Scores are always from the perspective of the player chosen as `perspective` at the root
@@ -290,3 +291,6 @@ mod tests {
         assert_eq!(find_pairs(player_board, empty_board), 1);
     }
 }
+=======
+// Minimax algorithm implementation (stub)
+>>>>>>> main

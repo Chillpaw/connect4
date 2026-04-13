@@ -1,3 +1,4 @@
+<<<<<<< minimax-implementation
 //! Legal moves for a [`Position`], ordered for search (center columns first).
 
 use crate::position::Position;
@@ -13,6 +14,10 @@ pub fn legal_columns_ordered(pos: &Position) -> impl Iterator<Item = usize> + '_
         .filter(move |&c| pos.can_play(c))
 }
 
+=======
+use crate::position::Position;
+
+>>>>>>> main
 /// Identify which board columns are playable for a position.
 ///
 /// # Returns
