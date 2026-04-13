@@ -1,9 +1,8 @@
-//! Four-in-a-row detection for a **single** player's [`Bitboard`].
-
 use crate::board::Bitboard;
 use crate::position::Position;
 
-/// `true` if `bitboard` contains four connected discs in any line (horizontal, vertical, or diagonal).
+
+
 pub fn is_win(bitboard: Bitboard) -> bool {
     horizontal_win(bitboard) || vertical_win(bitboard) || diag_left_win(bitboard) || diag_right_win(bitboard)
 }
@@ -210,8 +209,3 @@ mod tests {
         assert!(!is_win(b));
     }
 }
-
-
-
-
-

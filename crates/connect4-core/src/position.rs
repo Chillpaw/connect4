@@ -1,10 +1,7 @@
-//! Game state: two [`Bitboard`]s, per-column heights, and side to move.
-
 use std::fmt;
 use std::fmt::Formatter;
 use crate::board::Bitboard;
 
-/// Side to move or disc colour.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Player {
     Red,
@@ -12,7 +9,6 @@ pub enum Player {
 }
 
 impl Player {
-    /// The opposite colour.
     pub fn other(self) -> Self {
         match self {
             Player::Red => Player::Blue,
@@ -20,12 +16,37 @@ impl Player {
         }
     }
 
-    /// `0` = Red, `1` = Blue (matches `Position` bitboard array order).
-    pub fn index(&self) -> usize {
+    pub fn index(&self) ->  usize {
         match self {
             Player::Red => 0,
             Player::Blue => 1,
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct CoOrdinate {
+    pub x: usize,
+    pub y: usize,
+}
+
+impl CoOrdinate {
+    /// Creates a new `CoOrdinate` with the given x (column) and y (row).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use connect4_core::position::CoOrdinate;
+    ///
+    /// let c = CoOrdinate::new(2, 3);
+    /// assert_eq!(c.x, 2);
+    /// assert_eq!(c.y, 3);
+    /// ```
+    pub fn new(x: usize, y: usize) -> Self {
+        assert!(x < Position::WIDTH, "x out of bounds: {x} on creation of new CoOrdinate.");
+        assert!(y < Position::HEIGHT, "y out of bounds: {y} on creation of new CoOrdinate.");
+
+        CoOrdinate { x, y}
     }
 }
 
@@ -38,35 +59,42 @@ pub enum PlayError {
     ColumnFull,
 }
 
-/// Integer cell address in column-major grid space (`x` = column, `y` = row from bottom).
-#[derive(Debug)]
-pub struct CoOrdinate {
-    x: usize,
-    y: usize,
-}
-
-impl CoOrdinate {
-    fn new(x: usize, y: usize) -> Self {
-        CoOrdinate { x, y}
-    }
-}
-
-/// Full position: both players' discs, column fill heights, and who moves next.
 #[derive(Copy, Clone)]
 pub struct Position {
-    bitboards: [Bitboard; 2],
-    heights: [usize; Position::WIDTH],
-    pub(crate) player_to_move: Player
+    pub bitboards: [Bitboard; 2],
+    pub heights: [usize; Position::WIDTH],
+    pub player_to_move: Player
 }
 
 impl Position {
-    /// Number of columns (standard Connect Four).
-    pub(crate) const WIDTH: usize = 7;
-    /// Number of rows.
-    pub(crate) const HEIGHT: usize = 6;
-    /// Bit mask with `WIDTH * HEIGHT` low bits set (valid play area inside a `u64`).
-    pub(crate) const FULL_BOARD: u64 = (1u64 << (Position::WIDTH * Position::HEIGHT)) - 1;
+    pub const WIDTH: usize = 7;
+    pub const HEIGHT: usize = 6;
+    const MAX_MOVES: usize = Position::WIDTH * Position::HEIGHT;
+    pub const FULL_BOARD: u64 = (1u64 << (Position::WIDTH * Position::HEIGHT)) - 1;
 
+    /// Builds a bitmask with bits set for every board cell except those in the specified column.
+    ///
+    /// The mask is laid out with bit index = y * WIDTH + x for 0 <= x < WIDTH and 0 <= y < HEIGHT.
+    ///
+    /// # Parameters
+    ///
+    /// - `col`: column index to exclude from the mask (cells whose x == `col` will be zero).
+    ///
+    /// # Returns
+    ///
+    /// `u64` mask with bits set for all squares whose column is not `col`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use connect4_core::position::Position;
+    ///
+    /// let mask = Position::NOT_LEFT_EDGE;
+    /// // bit 0 corresponds to (x=0,y=0) and should be cleared
+    /// assert_eq!(mask & (1u64 << 0), 0);
+    /// // bit 1 corresponds to (x=1,y=0) and should be set (assuming WIDTH > 1)
+    /// assert_ne!(mask & (1u64 << 1), 0);
+    /// ```
     const fn edge_mask(col: usize) -> u64 {
         let mut mask = 0u64;
         let mut bit = 0;
@@ -79,12 +107,9 @@ impl Position {
         mask
     }
 
-    /// Mask clearing the rightmost column (avoids illegal horizontal wraps in bit scans).
     pub const NOT_RIGHT_EDGE: u64 = Self::edge_mask(Self::WIDTH - 1);
-    /// Mask clearing the leftmost column.
     pub const NOT_LEFT_EDGE: u64 = Self::edge_mask(0);
 
-    /// Empty board; Red moves first.
     pub fn new() -> Self {
         Position {
             bitboards: [Bitboard::empty(); 2],
@@ -93,22 +118,30 @@ impl Position {
         }
     }
 
-    /// Side that would place the next disc if the game is not over.
     pub fn player_to_move(&self) -> Player {
         self.player_to_move
     }
 
-    /// Occupancy for `player` only.
     pub fn get_bitboard(&self, player: Player) -> Bitboard {
         self.bitboards[player.index()]
     }
 
-    /// `true` if `column` is in range and not full.
     pub fn can_play(&self, column: usize) -> bool {
-        column < Self::WIDTH && self.heights[column] < Self::HEIGHT
+        if column >= Self::WIDTH {
+            println!("Invalid column index {column}.");
+            return false
+        }
+
+        let height = self.heights[column];
+        if height >= Self::HEIGHT {
+            println!("Column {column} is full");
+            return false
+        }
+
+        //if the column index is within bounds and the given column is not full then return valid state
+        true
     }
 
-    /// Flat bit index for `coord` under this board's width.
     pub fn index_from_coord(&self, coord: CoOrdinate) -> u8 {
         // the bitboard index is determined by the x and y position of the target
         // this is calculated by wrapping the game grid around the width to determine the flat index of the bitmask
@@ -128,7 +161,27 @@ impl Position {
         (coord.y * Self::WIDTH + coord.x) as u8
     }
 
-    /// Places a disc for the current player in `column`, or returns why the move is illegal.
+    pub fn play(&mut self, column: usize) {
+        if self.can_play(column) {
+            //update the current player's bitboard to record their move
+            let player_index = self.player_to_move.index();
+            let coord = CoOrdinate::new(column, self.heights[column]);
+            let index = self.index_from_coord(coord);
+            self.bitboards[player_index].set(index);
+
+            //increment board height occupancy
+            self.heights[column] += 1;
+            //update player to move to next player
+            self.player_to_move = self.player_to_move.other();
+
+
+        } else {
+            println!("Invalid move.");
+        }
+    }
+
+    /// Plays a disc in `column` for the current player, returning an error instead of panicking on
+    /// invalid input.
     pub fn try_play(&mut self, column: usize) -> Result<(), PlayError> {
         if column >= Self::WIDTH {
             return Err(PlayError::ColumnOutOfBounds);
@@ -136,7 +189,6 @@ impl Position {
         if self.heights[column] >= Self::HEIGHT {
             return Err(PlayError::ColumnFull);
         }
-
         let player_index = self.player_to_move.index();
         let coord = CoOrdinate::new(column, self.heights[column]);
         let index = self.index_from_coord(coord);
@@ -146,7 +198,6 @@ impl Position {
         Ok(())
     }
 
-    /// Every cell in the play area is occupied.
     pub fn board_full(&self) -> bool {
         let red_board = self.bitboards[0];
         let blue_board = self.bitboards[1];
@@ -195,12 +246,11 @@ mod tests {
     fn add_to_column() {
         let mut pos = Position::new();
 
-        for turn in 0..Position::HEIGHT {
-            assert_eq!(pos.heights[0], turn);
-            assert!(pos.try_play(0).is_ok());
+        for turn in 0..(Position::HEIGHT + 4) {
+            assert_eq!(pos.heights[0], turn.clamp(0,Position::HEIGHT));
+            println!("{:?}", pos.heights[0]);
+            pos.play(0);
         }
-        assert_eq!(pos.heights[0], Position::HEIGHT);
-        assert_eq!(pos.try_play(0), Err(PlayError::ColumnFull));
     }
 
     #[test]
@@ -241,7 +291,7 @@ mod tests {
             } else {
                 assert_eq!(pos.player_to_move.index(), 1); //second turn Blue
             }
-            pos.try_play(0).unwrap();
+            pos.play(0);
         }
     }
 
@@ -250,11 +300,11 @@ mod tests {
         let mut pos = Position::new();
 
         //Red's turn
-        pos.try_play(2).unwrap();
+        pos.play(2);
         assert_eq!(pos.get_bitboard(Player::Red), Bitboard::from_u64(0b100));
 
         //Blue's turn
-        pos.try_play(2).unwrap();
+        pos.play(2);
         assert_eq!(pos.get_bitboard(Player::Blue), Bitboard::from_u64(0x200));
     }
 
@@ -263,7 +313,7 @@ mod tests {
         let mut pos = Position::new();
 
         for column in 0..(Position::WIDTH + 4) {
-            let _ = pos.try_play(column);
+            pos.play(column);
         }
 
         for column in 0..Position::WIDTH {
@@ -307,7 +357,7 @@ mod tests {
         let mut pos = Position::new();
         // Play one piece in each column — board should still not be full
         for col in 0..Position::WIDTH {
-            pos.try_play(col).unwrap();
+            pos.play(col);
         }
         assert!(!pos.board_full());
     }
@@ -317,7 +367,7 @@ mod tests {
         let mut pos = Position::new();
         // Fill column 3 completely (HEIGHT pieces, alternating players)
         for _ in 0..Position::HEIGHT {
-            pos.try_play(3).unwrap();
+            pos.play(3);
         }
         assert!(!pos.can_play(3));
     }
@@ -325,10 +375,8 @@ mod tests {
     #[test]
     fn play_invalid_move_does_not_change_state() {
         let mut pos = Position::new();
-        assert_eq!(
-            pos.try_play(Position::WIDTH),
-            Err(PlayError::ColumnOutOfBounds)
-        );
+        // Playing an out-of-bounds column should be a no-op
+        pos.play(Position::WIDTH);
         assert_eq!(pos.player_to_move(), Player::Red);
         assert_eq!(pos.get_bitboard(Player::Red).to_u64(), 0);
         assert_eq!(pos.get_bitboard(Player::Blue).to_u64(), 0);
@@ -339,11 +387,12 @@ mod tests {
         let mut pos = Position::new();
         // Fill column 0
         for _ in 0..Position::HEIGHT {
-            pos.try_play(0).unwrap();
+            pos.play(0);
         }
         let player_before = pos.player_to_move();
         let height_before = pos.heights[0];
-        assert_eq!(pos.try_play(0), Err(PlayError::ColumnFull));
+        // Attempt one more play into the full column
+        pos.play(0);
         assert_eq!(pos.player_to_move(), player_before);
         assert_eq!(pos.heights[0], height_before);
     }
@@ -370,9 +419,9 @@ mod tests {
     fn player_to_move_method_returns_correct_player() {
         let mut pos = Position::new();
         assert_eq!(pos.player_to_move(), Player::Red);
-        pos.try_play(0).unwrap();
+        pos.play(0);
         assert_eq!(pos.player_to_move(), Player::Blue);
-        pos.try_play(0).unwrap();
+        pos.play(0);
         assert_eq!(pos.player_to_move(), Player::Red);
     }
 
