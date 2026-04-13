@@ -9,6 +9,9 @@ use crate::position::Position;
 /// # Examples
 ///
 /// ```
+/// use connect4_core::position::Position;
+/// use connect4_core::move_gen::valid_moves;
+///
 /// let pos = Position::new();
 /// let moves = valid_moves(&pos);
 /// assert!(moves.iter().all(|&b| b)); // empty board: every column is playable
