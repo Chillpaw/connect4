@@ -1,5 +1,18 @@
 use crate::position::Position;
 
+/// Identify which board columns are playable for a position.
+///
+/// # Returns
+///
+/// An array of length `Position::WIDTH` where each element is `true` if the corresponding column can be played, `false` otherwise.
+///
+/// # Examples
+///
+/// ```
+/// let pos = Position::new();
+/// let moves = valid_moves(&pos);
+/// assert!(moves.iter().all(|&b| b)); // empty board: every column is playable
+/// ```
 pub fn valid_moves(position: &Position) -> [bool; Position::WIDTH] {
     let mut valid_moves = [false; Position::WIDTH];
 

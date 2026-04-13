@@ -31,6 +31,15 @@ pub struct CoOrdinate {
 }
 
 impl CoOrdinate {
+    /// Creates a new `CoOrdinate` with the given x (column) and y (row).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let c = CoOrdinate::new(2, 3);
+    /// assert_eq!(c.x, 2);
+    /// assert_eq!(c.y, 3);
+    /// ```
     pub fn new(x: usize, y: usize) -> Self {
         CoOrdinate { x, y}
     }
@@ -48,6 +57,27 @@ impl Position {
     const MAX_MOVES: usize = Position::WIDTH * Position::HEIGHT;
     pub const FULL_BOARD: u64 = (1u64 << (Position::WIDTH * Position::HEIGHT)) - 1;
 
+    /// Builds a bitmask with bits set for every board cell except those in the specified column.
+    ///
+    /// The mask is laid out with bit index = y * WIDTH + x for 0 <= x < WIDTH and 0 <= y < HEIGHT.
+    ///
+    /// # Parameters
+    ///
+    /// - `col`: column index to exclude from the mask (cells whose x == `col` will be zero).
+    ///
+    /// # Returns
+    ///
+    /// `u64` mask with bits set for all squares whose column is not `col`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mask = Position::edge_mask(0);
+    /// // bit 0 corresponds to (x=0,y=0) and should be cleared
+    /// assert_eq!(mask & (1u64 << 0), 0);
+    /// // bit 1 corresponds to (x=1,y=0) and should be set (assuming WIDTH > 1)
+    /// assert_ne!(mask & (1u64 << 1), 0);
+    /// ```
     const fn edge_mask(col: usize) -> u64 {
         let mut mask = 0u64;
         let mut bit = 0;

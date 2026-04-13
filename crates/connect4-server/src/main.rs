@@ -10,6 +10,18 @@ enum GameState {
     Draw,
 }
 
+/// Runs the interactive Connect Four game loop in the terminal.
+///
+/// The function repeatedly renders the board, prompts the current player to enter a column (0–6),
+/// applies the chosen move, and updates the game state. It detects and announces a win or a draw
+/// and exits when the game is finished.
+///
+/// # Examples
+///
+/// ```no_run
+/// // Starts the interactive game loop; use in a terminal.
+/// main();
+/// ```
 fn main() {
     let mut game_state = GameState::InProgress;
     let mut pos = Position::new();
