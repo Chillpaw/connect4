@@ -1,6 +1,5 @@
 use std::fmt;
 use std::fmt::Formatter;
-use std::fs::write;
 use crate::board::Bitboard;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -27,27 +26,27 @@ impl Player {
 
 #[derive(Debug)]
 pub struct CoOrdinate {
-    x: usize,
-    y: usize,
+    pub x: usize,
+    pub y: usize,
 }
 
 impl CoOrdinate {
-    fn new(x: usize, y: usize) -> Self {
+    pub fn new(x: usize, y: usize) -> Self {
         CoOrdinate { x, y}
     }
 }
 
 pub struct Position {
-    bitboards: [Bitboard; 2],
-    heights: [usize; Position::WIDTH],
-    pub(crate) player_to_move: Player
+    pub bitboards: [Bitboard; 2],
+    pub heights: [usize; Position::WIDTH],
+    pub player_to_move: Player
 }
 
 impl Position {
-    pub(crate) const WIDTH: usize = 7;
-    pub(crate) const HEIGHT: usize = 6;
+    pub const WIDTH: usize = 7;
+    pub const HEIGHT: usize = 6;
     const MAX_MOVES: usize = Position::WIDTH * Position::HEIGHT;
-    const FULL_BOARD: u64 = (1u64 << (Position::WIDTH * Position::HEIGHT)) - 1;
+    pub const FULL_BOARD: u64 = (1u64 << (Position::WIDTH * Position::HEIGHT)) - 1;
 
     const fn edge_mask(col: usize) -> u64 {
         let mut mask = 0u64;

@@ -1,5 +1,5 @@
 use crate::board::Bitboard;
-use crate::position::{Player, Position};
+use crate::position::Position;
 
 
 
@@ -209,8 +209,3 @@ mod tests {
         assert!(!is_win(b));
     }
 }
-
-
-
-
-
