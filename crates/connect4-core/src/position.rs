@@ -36,11 +36,16 @@ impl CoOrdinate {
     /// # Examples
     ///
     /// ```
+    /// use connect4_core::position::CoOrdinate;
+    ///
     /// let c = CoOrdinate::new(2, 3);
     /// assert_eq!(c.x, 2);
     /// assert_eq!(c.y, 3);
     /// ```
     pub fn new(x: usize, y: usize) -> Self {
+        assert!(x < Position::WIDTH, "x out of bounds: {x} on creation of new CoOrdinate.");
+        assert!(y < Position::HEIGHT, "y out of bounds: {y} on creation of new CoOrdinate.");
+
         CoOrdinate { x, y}
     }
 }
@@ -72,7 +77,9 @@ impl Position {
     /// # Examples
     ///
     /// ```
-    /// let mask = Position::edge_mask(0);
+    /// use connect4_core::position::Position;
+    ///
+    /// let mask = Position::NOT_LEFT_EDGE;
     /// // bit 0 corresponds to (x=0,y=0) and should be cleared
     /// assert_eq!(mask & (1u64 << 0), 0);
     /// // bit 1 corresponds to (x=1,y=0) and should be set (assuming WIDTH > 1)

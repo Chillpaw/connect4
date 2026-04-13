@@ -37,10 +37,22 @@ fn main() {
         println!("{}", pos);
 
         //prompt current player input
-        println!("Enter which column you wish to place your token (0-6):");
+        println!("Enter which column you wish to place your token (1-{}):", Position::WIDTH);
         let mut column_input = String::new();
         io::stdin().read_line(&mut column_input).expect("Failed to read column");
-        let column = column_input.trim().parse().expect("Please enter a valid number");
+        let column = match column_input.trim().parse::<usize>() {
+            Ok(col) if (col < (Position::WIDTH - 1)) && (col != 0) => col - 1, // column index 0 treated as starting point in the engine so convert user input
+            _ => {
+                println!("Invalid input. Enter a number between 1 and {}.", Position::WIDTH);
+                continue;
+            }
+        };
+
+        if !pos.can_play(column) {
+            println!("Column is full.");
+            continue;
+        }
+
 
         //play move if valid
         let current_player = pos.player_to_move();
