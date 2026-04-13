@@ -1,10 +1,26 @@
 use crate::position::Position;
 
-fn valid_moves(position: Position) -> [bool; Position::WIDTH] {
+/// Identify which board columns are playable for a position.
+///
+/// # Returns
+///
+/// An array of length `Position::WIDTH` where each element is `true` if the corresponding column can be played, `false` otherwise.
+///
+/// # Examples
+///
+/// ```
+/// use connect4_core::position::Position;
+/// use connect4_core::move_gen::valid_moves;
+///
+/// let pos = Position::new();
+/// let moves = valid_moves(&pos);
+/// assert!(moves.iter().all(|&b| b)); // empty board: every column is playable
+/// ```
+pub fn valid_moves(position: &Position) -> [bool; Position::WIDTH] {
     let mut valid_moves = [false; Position::WIDTH];
 
     for col in 0..Position::WIDTH {
-        if Position::can_play(&position, col) {
+        if position.can_play(col) {
             valid_moves[col] = true;
         }
     }
@@ -19,14 +35,14 @@ mod tests {
     #[test]
     fn all_moves_valid_on_empty_board() {
         let pos = Position::new();
-        let moves = valid_moves(pos);
+        let moves = valid_moves(&pos);
         assert!(moves.iter().all(|&m| m));
     }
 
     #[test]
     fn valid_moves_has_correct_length() {
         let pos = Position::new();
-        let moves = valid_moves(pos);
+        let moves = valid_moves(&pos);
         assert_eq!(moves.len(), Position::WIDTH);
     }
 
@@ -37,7 +53,7 @@ mod tests {
         for _ in 0..Position::HEIGHT {
             pos.play(3);
         }
-        let moves = valid_moves(pos);
+        let moves = valid_moves(&pos);
         assert!(!moves[3]);
         // All other columns should still be valid
         for col in 0..Position::WIDTH {
@@ -56,8 +72,7 @@ mod tests {
                 pos.play(col);
             }
         }
-        let moves = valid_moves(pos);
+        let moves = valid_moves(&pos);
         assert!(moves.iter().all(|&m| !m));
     }
 }
-
