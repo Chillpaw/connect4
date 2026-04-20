@@ -50,7 +50,6 @@ impl CoOrdinate {
     }
 }
 
-<<<<<<< minimax-implementation
 /// Returned when a disc cannot be placed in the requested column.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PlayError {
@@ -61,8 +60,6 @@ pub enum PlayError {
 }
 
 #[derive(Copy, Clone)]
-=======
->>>>>>> main
 pub struct Position {
     pub bitboards: [Bitboard; 2],
     pub heights: [usize; Position::WIDTH],
@@ -183,7 +180,6 @@ impl Position {
         }
     }
 
-<<<<<<< minimax-implementation
     /// Plays a disc in `column` for the current player, returning an error instead of panicking on
     /// invalid input.
     pub fn try_play(&mut self, column: usize) -> Result<(), PlayError> {
@@ -202,8 +198,6 @@ impl Position {
         Ok(())
     }
 
-=======
->>>>>>> main
     pub fn board_full(&self) -> bool {
         let red_board = self.bitboards[0];
         let blue_board = self.bitboards[1];

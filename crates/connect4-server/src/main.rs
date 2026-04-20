@@ -12,7 +12,7 @@ enum GameState {
 
 /// Runs the interactive Connect Four game loop in the terminal.
 ///
-/// The function repeatedly renders the board, prompts the current player to enter a column (0–6),
+/// The function repeatedly renders the board, prompts the current player to enter a column (1–7),
 /// applies the chosen move, and updates the game state. It detects and announces a win or a draw
 /// and exits when the game is finished.
 ///
@@ -41,7 +41,7 @@ fn main() {
         let mut column_input = String::new();
         io::stdin().read_line(&mut column_input).expect("Failed to read column");
         let column = match column_input.trim().parse::<usize>() {
-            Ok(col) if (col < (Position::WIDTH - 1)) && (col != 0) => col - 1, // column index 0 treated as starting point in the engine so convert user input
+            Ok(col) if (col <= (Position::WIDTH)) && (col != 0) => col - 1, // column index 0 treated as starting point in the engine so convert user input
             _ => {
                 println!("Invalid input. Enter a number between 1 and {}.", Position::WIDTH);
                 continue;
