@@ -1,26 +1,49 @@
 # Connect Four
 
-This is my first substantive Rust project seeking to achieve the following goals:
+Rust-first Connect Four with a bitboard-backed rules engine, terminal client, and minimax search (alpha–beta pruning). This repo is also the **core library** for a planned full-stack portfolio slice.
 
-- Build a connect four clone in the terminal
-- Utilise a Bitboard wrapper to track game state
-- Clean code management and architecture
-- Implement a layer of self-review before pushing changes to the main branch
+## What works today
+
+- **Rules and state**: dual bitboards per player, column heights, [`try_play`](src/position.rs) returning `Result` for illegal moves
+- **Win detection**: horizontal, vertical, and both diagonals via bit-twiddling
+- **Search**: [`best_move`](src/minimax.rs) for the side to move, with center-first move ordering
+- **CLI**: `cargo run` for a two-player terminal game
+
+## Planned full-stack direction (portfolio)
+
+The goal is to show a **common, interview-friendly stack** on top of this crate:
+
+| Layer | Planned choice |
+|--------|----------------|
+| HTTP API | **Axum** (JSON REST, CORS, optional OpenAPI) |
+| Persistence | **PostgreSQL** with **sqlx** (games / moves) |
+| SPA | **React** + **Vite** + **TypeScript**, **TanStack Query** for server state |
+| Local orchestration | **Docker Compose** (API + DB + static frontend in dev) |
+| CI | **GitHub Actions** (`cargo test` / `clippy`, frontend `lint` / `build`) |
+
+*Rust engine and HTTP API in one monorepo keeps a single source of truth for game logic.*
 
 ## Bitboard
 
-This project utilises a Bitboard u64 wrapper to represent the state of the game board. The game engine will consist of 2 Bitboard types (1 for each player).
+The board uses a `u64` wrapper ([`Bitboard`](src/board.rs)): two instances per [`Position`](src/position.rs) (one per player). Bitboards implement `& | ^ !` and shifts for fast collision and pattern checks.
 
-The Bitboard class implements functions to act as an API to the rest of the game engine opposed to handling a u64 in the main game loop. The ```board.rs``` file also overloads the following logical operators: ```& | ^ !``` for operations between two Bitboards.
+## Running
 
-## Position
+```bash
+cargo test
+cargo run
+```
 
-The Position struct keeps track of the board's state.
+## Crate API (library)
 
-The core responsibilities of the position struct is to:
+```rust
+use connect4::{best_move, Position};
 
-- Track the current player
-- Assess if moves are valid
-- Update Player Bitboard when a move is played
+let mut pos = Position::new();
+pos.try_play(3).unwrap();
+let m = best_move(&pos, 6);
+```
 
+## Licence
 
+See [LICENSE](LICENSE).

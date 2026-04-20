@@ -50,6 +50,19 @@ impl CoOrdinate {
     }
 }
 
+<<<<<<< minimax-implementation
+/// Returned when a disc cannot be placed in the requested column.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlayError {
+    /// Column index is not in `0 .. WIDTH`.
+    ColumnOutOfBounds,
+    /// Column already has `HEIGHT` discs.
+    ColumnFull,
+}
+
+#[derive(Copy, Clone)]
+=======
+>>>>>>> main
 pub struct Position {
     pub bitboards: [Bitboard; 2],
     pub heights: [usize; Position::WIDTH],
@@ -170,6 +183,27 @@ impl Position {
         }
     }
 
+<<<<<<< minimax-implementation
+    /// Plays a disc in `column` for the current player, returning an error instead of panicking on
+    /// invalid input.
+    pub fn try_play(&mut self, column: usize) -> Result<(), PlayError> {
+        if column >= Self::WIDTH {
+            return Err(PlayError::ColumnOutOfBounds);
+        }
+        if self.heights[column] >= Self::HEIGHT {
+            return Err(PlayError::ColumnFull);
+        }
+        let player_index = self.player_to_move.index();
+        let coord = CoOrdinate::new(column, self.heights[column]);
+        let index = self.index_from_coord(coord);
+        self.bitboards[player_index].set(index);
+        self.heights[column] += 1;
+        self.player_to_move = self.player_to_move.other();
+        Ok(())
+    }
+
+=======
+>>>>>>> main
     pub fn board_full(&self) -> bool {
         let red_board = self.bitboards[0];
         let blue_board = self.bitboards[1];
