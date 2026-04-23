@@ -57,14 +57,12 @@ pub fn run() {
         if current_player == player_colour {
             //prompt current player input
             println!("Enter which column you wish to place your token (1-{}):", Position::WIDTH);
-            let mut column_input = String::new();
-            }
-            io::stdin().read_line(&mut column_input).expect("Failed to read column");
-            let column = match column_input.trim().parse::<usize>() {
-                Ok(col) if (col <= (Position::WIDTH)) && (col != 0) => col - 1, // column index 0 treated as starting point in the engine so convert user input
-                _ => {
-                    println!("Invalid input. Enter a number between 1 and {}.", Position::WIDTH);
-                    continue;
+            let column = loop {
+                let mut column_input = String::new();
+                io::stdin().read_line(&mut column_input).expect("Failed to read column");
+                match column_input.trim().parse::<usize>() {
+                    Ok(col) if (col <= (Position::WIDTH)) && (col != 0) => break col - 1, // column index 0 treated as starting point in the engine so convert user input
+                    _ => println!("Invalid input. Enter a number between 1 and {}.", Position::WIDTH)
                 }
             };
 
