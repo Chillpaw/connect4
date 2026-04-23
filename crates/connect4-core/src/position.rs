@@ -128,13 +128,13 @@ impl Position {
 
     pub fn can_play(&self, column: usize) -> bool {
         if column >= Self::WIDTH {
-            println!("Invalid column index {column}.");
+            //println!("Invalid column index {column}.");
             return false
         }
 
         let height = self.heights[column];
         if height >= Self::HEIGHT {
-            println!("Column {column} is full");
+            //println!("Column {column} is full");
             return false
         }
 
