@@ -14,6 +14,12 @@ const DRAW_SCORE: f32 = 0.0;
 const PAIR_WEIGHT_SELF: f32 = 0.00001;
 const PAIR_WEIGHT_OPP: f32 = 0.000012;
 
+pub struct SearchInfo {
+    pub best_move: Option<usize>,
+    pub nodes: u64,
+    pub elapsed_ms: u128,
+}
+
 /// Returns a strong legal move for the side to move, searching `depth` plies from each child.
 ///
 /// `depth` counts full plies to search **after** making a candidate move (the child position is
@@ -21,10 +27,13 @@ const PAIR_WEIGHT_OPP: f32 = 0.000012;
 /// resulting positions.
 ///
 /// Returns [`None`] only when there are no legal moves.
-pub fn best_move(pos: &Position, depth: usize) -> Option<usize> {
+pub fn best_move(pos: &Position, depth: usize) -> SearchInfo {
     let root = pos.player_to_move();
     let mut best: Option<usize> = None;
     let mut best_score = f32::NEG_INFINITY;
+    let mut nodes: u64 = 0;
+
+    let start = std::time::Instant::now();
 
     for col in legal_columns_ordered(pos) {
         let mut child = *pos;
@@ -37,6 +46,7 @@ pub fn best_move(pos: &Position, depth: usize) -> Option<usize> {
             f32::NEG_INFINITY,
             f32::INFINITY,
             root,
+            &mut nodes,
         );
         if score > best_score || best.is_none() {
             best_score = score;
@@ -44,7 +54,11 @@ pub fn best_move(pos: &Position, depth: usize) -> Option<usize> {
         }
     }
 
-    best
+    SearchInfo {
+        best_move: best,
+        nodes,
+        elapsed_ms: start.elapsed().as_millis()
+    }
 }
 
 /// Static evaluation and recursive minimax with alpha–beta pruning.
@@ -54,7 +68,10 @@ fn search(
     mut alpha: f32,
     mut beta: f32,
     perspective: Player,
+    nodes: &mut u64,
 ) -> f32 {
+    *nodes += 1;
+
     if let Some(s) = terminal_score(&pos, perspective) {
         return s;
     }
@@ -72,7 +89,7 @@ fn search(
             if p.try_play(col).is_err() {
                 continue;
             }
-            let score = search(p, depth - 1, alpha, beta, perspective);
+            let score = search(p, depth - 1, alpha, beta, perspective, nodes);
             value = value.max(score);
             alpha = alpha.max(value);
             if beta <= alpha {
@@ -87,7 +104,7 @@ fn search(
             if p.try_play(col).is_err() {
                 continue;
             }
-            let score = search(p, depth - 1, alpha, beta, perspective);
+            let score = search(p, depth - 1, alpha, beta, perspective, nodes);
             value = value.min(score);
             beta = beta.min(value);
             if beta <= alpha {
@@ -202,13 +219,13 @@ mod tests {
         pos.try_play(2).unwrap();
         pos.try_play(2).unwrap();
         assert_eq!(pos.player_to_move(), Player::Red);
-        assert_eq!(best_move(&pos, 8), Some(3));
+        assert_eq!(best_move(&pos, 8).best_move, Some(3));
     }
 
     #[test]
     fn best_move_opening_returns_legal_center_bias() {
         let pos = Position::new();
-        let col = best_move(&pos, 6).expect("opening has moves");
+        let col = best_move(&pos, 6).best_move.expect("opening has moves");
         assert!(pos.can_play(col));
         assert_eq!(col, 3);
     }
