@@ -1,8 +1,6 @@
 use crate::position::{Player, Position};
 use crate::win_detection::is_win;
-use rand::prelude::*;
 use std::io;
-use std::io::Read;
 use crate::minimax;
 
 #[derive(Eq, PartialEq)]
@@ -119,7 +117,12 @@ pub fn run() {
                 Some(column) => pos.play(column),
                 _ => panic!("AI could not select a best move.")
             }
-            println!("AI chose best move as column: {} based on searching {} nodes in {}ms.", search.best_move.unwrap() + 1, search.nodes, search.elapsed_ms);
+            println!("AI chose best move as column: {} based on searching {} nodes in {}ms with a score of {}.",
+                     search.best_move.unwrap() + 1,
+                     search.nodes,
+                     search.elapsed_ms,
+                     search.move_score
+            );
         }
 
         //check if a player has won

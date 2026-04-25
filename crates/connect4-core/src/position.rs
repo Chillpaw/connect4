@@ -53,7 +53,7 @@ impl CoOrdinate {
 /// Returned when a disc cannot be placed in the requested column.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PlayError {
-    /// Column index is not in `0 .. WIDTH`.
+    /// Column index is not in `0 ... WIDTH`.
     ColumnOutOfBounds,
     /// Column already has `HEIGHT` discs.
     ColumnFull,
@@ -69,7 +69,6 @@ pub struct Position {
 impl Position {
     pub const WIDTH: usize = 7;
     pub const HEIGHT: usize = 6;
-    const MAX_MOVES: usize = Position::WIDTH * Position::HEIGHT;
     pub const FULL_BOARD: u64 = (1u64 << (Position::WIDTH * Position::HEIGHT)) - 1;
 
     /// Builds a bitmask with bits set for every board cell except those in the specified column.
@@ -329,7 +328,7 @@ mod tests {
         pos.bitboards[1] = Bitboard::from_u64(0xAAAAAAAAAAAAAAAA) & Bitboard::from_u64(Position::FULL_BOARD);
         println!("{}", pos.bitboards[0]);
         println!("{}", pos.bitboards[1]);
-        println!("{}", (pos.bitboards[0] | pos.bitboards[1]));
+        println!("{}", pos.bitboards[0] | pos.bitboards[1]);
         assert!(pos.board_full())
     }
 

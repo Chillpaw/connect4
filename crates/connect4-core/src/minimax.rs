@@ -16,6 +16,7 @@ const PAIR_WEIGHT_OPP: f32 = 0.000012;
 
 pub struct SearchInfo {
     pub best_move: Option<usize>,
+    pub move_score: f32,
     pub nodes: u64,
     pub elapsed_ms: u128,
 }
@@ -56,6 +57,7 @@ pub fn best_move(pos: &Position, depth: usize) -> SearchInfo {
 
     SearchInfo {
         best_move: best,
+        move_score: best_score,
         nodes,
         elapsed_ms: start.elapsed().as_millis()
     }
@@ -187,8 +189,8 @@ fn count_diag_left_pairs(b: Bitboard, empties: Bitboard) -> u32 {
     let m = b & mask;
     let offset = Position::WIDTH as u8 - 1;
     let pairs = m & (b >> offset);
-    let one_step_ahead = pairs & (empties >> offset * 2);
-    let two_steps_ahead = pairs & (empties >> offset * 3);
+    let one_step_ahead = pairs & (empties >> (offset * 2));
+    let two_steps_ahead = pairs & (empties >> (offset * 3));
     (pairs & one_step_ahead & two_steps_ahead).count()
 }
 
@@ -197,9 +199,9 @@ fn count_diag_right_pairs(b: Bitboard, empties: Bitboard) -> u32 {
     let m = b & mask;
     let offset = Position::WIDTH as u8 + 1;
     let pairs = m & (b >> offset);
-    let one_step_ahead = pairs & (empties >> offset * 2);
-    let two_steps_ahead = pairs & (empties >> offset * 3);
-    let one_step_behind = pairs & (empties << offset * 2);
+    let one_step_ahead = pairs & (empties >> (offset * 2));
+    let two_steps_ahead = pairs & (empties >> (offset * 3));
+    let one_step_behind = pairs & (empties << (offset * 2));
     ((one_step_ahead & two_steps_ahead) | (one_step_behind & one_step_ahead)).count()
 }
 
