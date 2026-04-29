@@ -114,7 +114,7 @@ pub fn run() {
         else if game_mode != GameMode::TwoPlayer { // AI to move
             let search = minimax::best_move(&pos, difficulty);
             match search.best_move {
-                Some(column) => pos.play(column),
+                Some(column) => pos.play(column).expect("play failed"),
                 _ => panic!("AI could not select a best move.")
             }
             println!("AI chose best move as column: {} based on searching {} nodes in {}ms with a score of {}.",

@@ -37,8 +37,8 @@ pub fn best_move(pos: &Position, depth: usize) -> SearchInfo {
     let start = std::time::Instant::now();
 
     for col in legal_columns_ordered(pos) {
-        let mut child = *pos;
-        if child.try_play(col).is_err() {
+        let child = *pos;
+        if !child.can_play(col) {
             continue;
         }
         let score = search(
@@ -88,7 +88,7 @@ fn search(
         let mut value = f32::NEG_INFINITY;
         for col in cols {
             let mut p = pos;
-            if p.try_play(col).is_err() {
+            if !p.can_play(col) {
                 continue;
             }
             let score = search(p, depth - 1, alpha, beta, perspective, nodes);
@@ -103,7 +103,7 @@ fn search(
         let mut value = f32::INFINITY;
         for col in cols {
             let mut p = pos;
-            if p.try_play(col).is_err() {
+            if !p.can_play(col) {
                 continue;
             }
             let score = search(p, depth - 1, alpha, beta, perspective, nodes);
@@ -209,19 +209,21 @@ fn count_diag_right_pairs(b: Bitboard, empties: Bitboard) -> u32 {
 mod tests {
     use super::{best_move, find_pairs};
     use crate::board::Bitboard;
-    use crate::position::{Player, Position};
+    use crate::position::{PlayError, Player, Position};
 
     #[test]
-    fn best_move_finds_immediate_win() {
+    fn best_move_finds_immediate_win() -> Result<(), PlayError> {
         let mut pos = Position::new();
-        pos.try_play(0).unwrap();
-        pos.try_play(0).unwrap();
-        pos.try_play(1).unwrap();
-        pos.try_play(1).unwrap();
-        pos.try_play(2).unwrap();
-        pos.try_play(2).unwrap();
+        pos.play(0)?;
+        pos.play(0)?;
+        pos.play(1)?;
+        pos.play(1)?;
+        pos.play(2)?;
+        pos.play(2)?;
         assert_eq!(pos.player_to_move(), Player::Red);
         assert_eq!(best_move(&pos, 8).best_move, Some(3));
+
+        Ok(())
     }
 
     #[test]

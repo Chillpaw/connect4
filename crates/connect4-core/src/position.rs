@@ -125,22 +125,6 @@ impl Position {
         self.bitboards[player.index()]
     }
 
-    pub fn can_play(&self, column: usize) -> bool {
-        if column >= Self::WIDTH {
-            //println!("Invalid column index {column}.");
-            return false
-        }
-
-        let height = self.heights[column];
-        if height >= Self::HEIGHT {
-            //println!("Column {column} is full");
-            return false
-        }
-
-        //if the column index is within bounds and the given column is not full then return valid state
-        true
-    }
-
     pub fn index_from_coord(&self, coord: CoOrdinate) -> u8 {
         // the bitboard index is determined by the x and y position of the target
         // this is calculated by wrapping the game grid around the width to determine the flat index of the bitmask
@@ -160,8 +144,14 @@ impl Position {
         (coord.y * Self::WIDTH + coord.x) as u8
     }
 
-    pub fn play(&mut self, column: usize) {
-        if self.can_play(column) {
+    pub fn play(&mut self, column: usize) -> Result<(), PlayError>{
+        let height = self.heights[column];
+
+        if column >= Self::WIDTH {
+            Err(PlayError::ColumnOutOfBounds)
+        } else if height >= Self::HEIGHT {
+            Err(PlayError::ColumnFull)
+        } else {
             //update the current player's bitboard to record their move
             let player_index = self.player_to_move.index();
             let coord = CoOrdinate::new(column, self.heights[column]);
@@ -173,30 +163,15 @@ impl Position {
             //update player to move to next player
             self.player_to_move = self.player_to_move.other();
 
-
-        } else {
-            println!("Invalid move.");
+            Ok(())
         }
+
     }
 
-    /// Plays a disc in `column` for the current player, returning an error instead of panicking on
-    /// invalid input.
-    pub fn try_play(&mut self, column: usize) -> Result<(), PlayError> {
-        if column >= Self::WIDTH {
-            return Err(PlayError::ColumnOutOfBounds);
-        }
-        if self.heights[column] >= Self::HEIGHT {
-            return Err(PlayError::ColumnFull);
-        }
-        let player_index = self.player_to_move.index();
-        let coord = CoOrdinate::new(column, self.heights[column]);
-        let index = self.index_from_coord(coord);
-        self.bitboards[player_index].set(index);
-        self.heights[column] += 1;
-        self.player_to_move = self.player_to_move.other();
-        Ok(())
+    pub fn can_play(&self, col: usize) -> bool {
+        !(col >= Self::WIDTH) || !(self.heights[col] >= Self::HEIGHT)
     }
-
+    
     pub fn board_full(&self) -> bool {
         let red_board = self.bitboards[0];
         let blue_board = self.bitboards[1];
@@ -263,21 +238,24 @@ mod tests {
     }
 
     #[test]
-    fn can_play_valid_column() {
-        let pos = Position::new();
+    fn can_play_valid_column() -> Result<(), PlayError> {
+        let mut pos = Position::new();
 
         for column in 0..Position::WIDTH {
-            assert!(pos.can_play(column));
+            pos.play(column)?;
         }
+        Ok(())
     }
 
     #[test]
-    fn can_not_play_invalid_column() {
-        let pos = Position::new();
+    fn can_not_play_invalid_column() -> Result<(), PlayError> {
+        let mut pos = Position::new();
 
-        assert!(!pos.can_play(Position::WIDTH));
-        assert!(!pos.can_play(Position::WIDTH + 1));
-        assert!(!pos.can_play(50));
+        pos.play(Position::WIDTH)?;
+        pos.play(Position::WIDTH + 1)?;
+        pos.play(50)?;
+
+        Ok(())
     }
 
     #[test]
@@ -362,13 +340,15 @@ mod tests {
     }
 
     #[test]
-    fn full_column_cannot_play() {
+    fn full_column_cannot_play() -> Result<(), PlayError> {
         let mut pos = Position::new();
         // Fill column 3 completely (HEIGHT pieces, alternating players)
         for _ in 0..Position::HEIGHT {
-            pos.play(3);
+            pos.play(3)?;
         }
-        assert!(!pos.can_play(3));
+        pos.play(3)?;
+
+        Ok(())
     }
 
     #[test]
