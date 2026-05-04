@@ -8,6 +8,13 @@ pub enum Player {
     Blue
 }
 
+#[derive(Eq, PartialEq, Clone, Copy)]
+pub(crate) enum GameState {
+    InProgress,
+    Won(Player),
+    Draw,
+}
+
 impl Player {
     pub fn other(self) -> Self {
         match self {
@@ -63,7 +70,8 @@ pub enum PlayError {
 pub struct Position {
     pub bitboards: [Bitboard; 2],
     pub heights: [usize; Position::WIDTH],
-    pub player_to_move: Player
+    pub player_to_move: Player,
+    pub game_state: GameState,
 }
 
 impl Position {
@@ -114,6 +122,7 @@ impl Position {
             bitboards: [Bitboard::empty(); 2],
             heights: [0; Self::WIDTH],
             player_to_move: Player::Red,
+            game_state: GameState::InProgress,
         }
     }
 
@@ -171,7 +180,7 @@ impl Position {
     pub fn can_play(&self, col: usize) -> bool {
         !(col >= Self::WIDTH) || !(self.heights[col] >= Self::HEIGHT)
     }
-    
+
     pub fn board_full(&self) -> bool {
         let red_board = self.bitboards[0];
         let blue_board = self.bitboards[1];
