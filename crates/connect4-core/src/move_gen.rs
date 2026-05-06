@@ -44,6 +44,7 @@ pub fn valid_moves(position: &Position) -> [bool; Position::WIDTH] {
 
 #[cfg(test)]
 mod tests {
+    use crate::position::PlayError;
     use super::*;
 
     #[test]
@@ -61,11 +62,11 @@ mod tests {
     }
 
     #[test]
-    fn full_column_shows_as_invalid() {
+    fn full_column_shows_as_invalid() -> Result<(), PlayError> {
         let mut pos = Position::new();
         // Fill column 3 completely
         for _ in 0..Position::HEIGHT {
-            pos.play(3);
+            pos.play(3)?;
         }
         let moves = valid_moves(&pos);
         assert!(!moves[3]);
@@ -75,18 +76,27 @@ mod tests {
                 assert!(moves[col], "column {col} should still be valid");
             }
         }
+
+        Ok(())
     }
 
     #[test]
-    fn all_columns_full_no_valid_moves() {
+    fn all_columns_full_no_valid_moves() -> Result<(), PlayError> {
         let mut pos = Position::new();
         // Fill every column
         for _ in 0..Position::HEIGHT {
             for col in 0..Position::WIDTH {
-                pos.play(col);
+                pos.play(col)?;
             }
         }
+
+        println!("{pos}");
+        println!("{:?}", pos.heights);
+
         let moves = valid_moves(&pos);
+        println!("{:?}", moves);
         assert!(moves.iter().all(|&m| !m));
+
+        Ok(())
     }
 }

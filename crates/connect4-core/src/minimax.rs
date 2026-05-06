@@ -87,7 +87,7 @@ fn search(
     if to_move == perspective {
         let mut value = f32::NEG_INFINITY;
         for col in cols {
-            let mut p = pos;
+            let p = pos;
             if !p.can_play(col) {
                 continue;
             }
@@ -102,7 +102,7 @@ fn search(
     } else {
         let mut value = f32::INFINITY;
         for col in cols {
-            let mut p = pos;
+            let p = pos;
             if !p.can_play(col) {
                 continue;
             }
