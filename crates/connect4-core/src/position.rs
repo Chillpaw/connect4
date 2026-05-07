@@ -356,7 +356,7 @@ mod tests {
         for _ in 0..Position::HEIGHT {
             pos.play(3)?;
         }
-        assert!(pos.play(3).is_err());
+        assert_eq!(pos.play(3),Err(PlayError::ColumnFull));
 
         Ok(())
     }
@@ -376,12 +376,12 @@ mod tests {
         let mut pos = Position::new();
         // Fill column 0
         for _ in 0..Position::HEIGHT {
-            pos.play(0);
+            pos.play(0)?;
         }
         let player_before = pos.player_to_move();
         let height_before = pos.heights[0];
         // Attempt one more play into the full column
-        pos.play(0).is_err();
+        assert_eq!(pos.play(0), Err(PlayError::ColumnFull));
         assert_eq!(pos.player_to_move(), player_before);
         assert_eq!(pos.heights[0], height_before);
 
