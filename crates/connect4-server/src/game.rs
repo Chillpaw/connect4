@@ -8,15 +8,14 @@ pub enum ReplayError {
 
 pub fn replay(moves: &str) -> Result<Position, ReplayError> {
     let mut pos = Position::new();
-    for (i, pos_move) in moves.chars().enumerate() {
-        let column: usize = pos_move.to_digit(10)
-            .ok_or(ReplayError::InvalidCharacter { position: i, character: pos_move})? as usize;
-        if column == 0 { // guard against column 0 to prevent overflow from subtraction
-            return Err(ReplayError::IllegalMove { position: i, character: pos_move, reason: PlayError::ColumnOutOfBounds })
-        }
-        pos.play(column - 1)
-            .map_err(|e| ReplayError::IllegalMove { position: i, character: pos_move, reason: e})?;
-        println!("played move into column index {column}");
+    for (i, ch) in moves.chars().enumerate() {
+        let column = match ch {
+            '1'..='7' => ch as usize - '1' as usize,
+            _ => return Err(ReplayError::InvalidCharacter { position: i, character: ch })
+        };
+        println!("parsed column: {column}");
+        pos.play(column)
+            .map_err(|e| ReplayError::IllegalMove { position: i, character: ch, reason: e})?;
     }
     Ok(pos)
 }
@@ -41,6 +40,7 @@ mod tests {
     fn replay_one_position() -> Result<(), ReplayError> {
         let pos = replay("4")?;
         let bb = Bitboard::from_u64(0x8);
+        println!("{pos}");
         println!("{bb}");
 
         assert_eq!(pos.bitboards[0], bb);
@@ -83,15 +83,13 @@ mod tests {
 
     #[test]
     fn move_out_of_range_returns_error() {
-        assert_eq!(replay("0"), Err(ReplayError::IllegalMove {
+        assert_eq!(replay("0"), Err(ReplayError::InvalidCharacter {
             position: 0,
             character: '0',
-            reason: PlayError::ColumnOutOfBounds
         }));
-        assert_eq!(replay("8"), Err(ReplayError::IllegalMove {
+        assert_eq!(replay("8"), Err(ReplayError::InvalidCharacter{
             position: 0,
             character: '8',
-            reason: PlayError::ColumnOutOfBounds
         }))
     }
 
