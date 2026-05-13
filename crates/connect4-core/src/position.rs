@@ -8,7 +8,7 @@ pub enum Player {
     Blue
 }
 
-#[derive(Eq, PartialEq, Clone, Copy)]
+#[derive(Eq, PartialEq, Clone, Copy, Debug)]
 pub enum GameState {
     InProgress,
     Won(Player),
@@ -66,7 +66,7 @@ pub enum PlayError {
     ColumnFull,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Position {
     pub bitboards: [Bitboard; 2],
     pub heights: [usize; Position::WIDTH],

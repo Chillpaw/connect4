@@ -1,3 +1,5 @@
+mod game;
+
 use axum::{Router, routing::get};
 
 pub fn app() -> Router {
