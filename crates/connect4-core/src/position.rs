@@ -155,6 +155,17 @@ impl Position {
         (coord.y * Self::WIDTH + coord.x) as u8
     }
 
+    pub fn cell_at(&self, col: usize, row: usize) -> Option<Player> {
+        let index = self.index_from_coord(CoOrdinate { x: col, y: row });
+        let red_bb = self.bitboards[0];
+        let blue_bb = self.bitboards[1];
+
+        if red_bb.is_set(index) { return Some(Player::Red) }
+        if blue_bb.is_set(index) { return Some(Player::Blue) }
+
+        None
+    }
+
     pub fn play(&mut self, column: usize) -> Result<(), PlayError>{
 
         if column >= Self::WIDTH {
@@ -202,13 +213,12 @@ impl fmt::Display for Position {
         // show consolidated game board with B for blue and R for red
         for y in (0..Position::HEIGHT).rev() {
             for x in 0..Position::WIDTH {
-                let index = y * Position::WIDTH + x;
-                write!(f, "{}", if self.bitboards[0].is_set(index as u8)
-                    {"R "}
-                else if self.bitboards[1].is_set(index as u8)
-                    {"B "}
-                else
-                    {". "})?;
+                let symbol = match self.cell_at(y, x) {
+                    Some(Player::Red) => "R ",
+                    Some(Player::Blue) => "B ",
+                    None => {". "}
+                };
+                write!(f, "{}", symbol)?;
             }
             writeln!(f)?;
         }

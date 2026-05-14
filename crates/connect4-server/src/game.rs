@@ -13,7 +13,6 @@ pub fn replay(moves: &str) -> Result<Position, ReplayError> {
             '1'..='7' => ch as usize - '1' as usize,
             _ => return Err(ReplayError::InvalidCharacter { position: i, character: ch })
         };
-        println!("parsed column: {column}");
         pos.play(column)
             .map_err(|e| ReplayError::IllegalMove { position: i, character: ch, reason: e})?;
     }
