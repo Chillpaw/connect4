@@ -156,6 +156,9 @@ impl Position {
     }
 
     pub fn cell_at(&self, col: usize, row: usize) -> Option<Player> {
+        if col >= Self::WIDTH {return None}
+        if row >= Self::HEIGHT { return None}
+
         let index = self.index_from_coord(CoOrdinate { x: col, y: row });
         let red_bb = self.bitboards[0];
         let blue_bb = self.bitboards[1];
@@ -213,7 +216,7 @@ impl fmt::Display for Position {
         // show consolidated game board with B for blue and R for red
         for y in (0..Position::HEIGHT).rev() {
             for x in 0..Position::WIDTH {
-                let symbol = match self.cell_at(y, x) {
+                let symbol = match self.cell_at(x, y) {
                     Some(Player::Red) => "R ",
                     Some(Player::Blue) => "B ",
                     None => {". "}
@@ -424,6 +427,42 @@ mod tests {
         assert_eq!(pos.player_to_move(), Player::Blue);
         pos.play(0)?;
         assert_eq!(pos.player_to_move(), Player::Red);
+
+        Ok(())
+    }
+
+    #[test]
+    fn cell_at_is_red() -> Result<(), PlayError> {
+        let mut pos = Position::new();
+
+        pos.play(3)?;
+        println!("{}", pos);
+
+        assert_eq!(pos.cell_at(3, 0), Some(Player::Red));
+
+        Ok(())
+    }
+
+    #[test]
+    fn cell_at_is_none() -> Result<(), PlayError> {
+        let mut pos = Position::new();
+
+        pos.play(3)?;
+        println!("{}", pos);
+
+        assert_eq!(pos.cell_at(0, 0), None);
+
+        Ok(())
+    }
+
+    #[test]
+    fn cell_at_out_of_bounds_is_none() -> Result<(), PlayError> {
+        let mut pos = Position::new();
+
+        pos.play(3)?;
+        println!("{}", pos);
+
+        assert_eq!(pos.cell_at(10, 10), None);
 
         Ok(())
     }
