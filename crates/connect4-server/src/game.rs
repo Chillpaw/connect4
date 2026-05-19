@@ -1,5 +1,5 @@
-use connect4_core::position;
 use connect4_core::position::{PlayError, Player, Position};
+use connect4_core::win_detection::is_win;
 use serde::Serialize;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -58,16 +58,14 @@ pub fn position_to_response(moves: String) -> GameStateResponse {
         }
     }
 
-    let state = match position.game_state {
-        position::GameState::InProgress => { GameState::InProgress }
-        position::GameState::Won(player) => {
-            match player {
-                Player::Red => GameState::RedWins,
-                Player::Blue => GameState::BlueWins,
-            }
-        }
-        position::GameState::Draw => { GameState::Draw }
-    };
+    let mut state = GameState::InProgress;
+    if is_win(position.bitboards[1]) {
+        state = GameState::BlueWins;
+    }
+    if is_win(position.bitboards[0]) {
+        state = GameState::RedWins;
+    }
+
 
     let next_player = match position.player_to_move {
         Player::Red => CellState::Red,
@@ -175,5 +173,60 @@ mod tests {
             character: '1',
             reason: PlayError::ColumnFull
         }))
+    }
+
+    #[test]
+    fn board_correct_dimensions() {
+        let resp = position_to_response("".to_string());
+        assert_eq!(resp.board.len(), Position::HEIGHT);
+        for row in &resp.board { assert_eq!(row.len(), Position::WIDTH) }
+    }
+
+    #[test]
+    fn empty_board_is_empty_cells() {
+        let resp = position_to_response("".to_string());
+        assert!(resp.board.iter().flatten().all(|c| *c == CellState::Empty))
+    }
+
+    #[test]
+    fn initial_next_player_is_red() {
+        let resp = position_to_response("".to_string());
+        assert_eq!(resp.next_player, CellState::Red);
+    }
+
+    #[test]
+    fn next_player_alternates_after_one_move() -> Result<(), ReplayError> {
+        let resp = position_to_response("4".to_string());
+        assert_eq!(resp.next_player, CellState::Blue);
+        Ok(())
+    }
+
+    #[test]
+    fn next_player_alternates_back_to_red_after_two_moves() -> Result<(), ReplayError> {
+        let resp = position_to_response("44".to_string());
+        assert_eq!(resp.next_player, CellState::Red);
+        Ok(())
+    }
+
+    #[test]
+    fn initial_state_is_in_progress() {
+        let resp = position_to_response("".to_string());
+        assert_eq!(resp.state, GameState::InProgress);
+    }
+
+    #[test]
+    fn state_is_in_progress_mid_game() -> Result<(), ReplayError> {
+        let resp = position_to_response("44556611".to_string());
+        assert_eq!(resp.state, GameState::InProgress);
+        Ok(())
+    }
+
+    #[test]
+    fn state_is_red_wins() -> Result<(), ReplayError> {
+        // Reuses the known terminal position from the replay tests
+        let moves = "44444432655555323332267666211123567777711";
+        let resp = position_to_response(moves.to_string());
+        assert_eq!(resp.state, GameState::RedWins);
+        Ok(())
     }
 }
