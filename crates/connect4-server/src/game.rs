@@ -1,12 +1,88 @@
-use connect4_core::position::{PlayError, Position};
+use connect4_core::position;
+use connect4_core::position::{PlayError, Player, Position};
+use serde::Serialize;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReplayError {
     InvalidCharacter { position: usize, character: char },
-    IllegalMove { position: usize, character: char, reason: PlayError }
+    IllegalMove { position: usize, character: char, reason: PlayError },
 }
 
-pub fn replay(moves: &str) -> Result<Position, ReplayError> {
+#[derive(Serialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum CellState {
+    Red,
+    Blue,
+    Empty,
+}
+
+#[derive(Serialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum GameState {
+    InProgress,
+    RedWins,
+    BlueWins,
+    Draw,
+}
+
+#[derive(Serialize, Debug)]
+pub struct GameStateResponse {
+    pub moves: String,
+    pub board: Vec<Vec<CellState>>,
+    pub state: GameState,
+    pub next_player: CellState,
+}
+
+pub fn position_to_response(moves: String) -> GameStateResponse {
+    let position = match replay(&moves) {
+        Ok(pos) => pos,
+        Err(e) => panic!("{:?}", e),
+    };
+    let mut board: Vec<Vec<CellState>> = (0..Position::HEIGHT)
+        .map(|_| (0..Position::WIDTH)
+            .map(|_| CellState::Empty)
+            .collect())
+        .collect();
+    for (row, rows) in board.iter_mut().enumerate() {
+        for (col, cell) in rows.iter_mut().enumerate() {
+            let cell_state = match position.cell_at(col, row) {
+                None => { CellState::Empty }
+                Some(player) => {
+                    match player {
+                        Player::Red => CellState::Red,
+                        Player::Blue => CellState::Blue
+                    }
+                }
+            };
+            *cell = cell_state
+        }
+    }
+
+    let state = match position.game_state {
+        position::GameState::InProgress => { GameState::InProgress }
+        position::GameState::Won(player) => {
+            match player {
+                Player::Red => GameState::RedWins,
+                Player::Blue => GameState::BlueWins,
+            }
+        }
+        position::GameState::Draw => { GameState::Draw }
+    };
+
+    let next_player = match position.player_to_move {
+        Player::Red => CellState::Red,
+        Player::Blue => CellState::Blue,
+    };
+
+    GameStateResponse {
+        moves,
+        board,
+        state,
+        next_player,
+    }
+}
+
+fn replay(moves: &str) -> Result<Position, ReplayError> {
     let mut pos = Position::new();
     for (i, ch) in moves.chars().enumerate() {
         let column = match ch {
@@ -14,17 +90,17 @@ pub fn replay(moves: &str) -> Result<Position, ReplayError> {
             _ => return Err(ReplayError::InvalidCharacter { position: i, character: ch })
         };
         pos.play(column)
-            .map_err(|e| ReplayError::IllegalMove { position: i, character: ch, reason: e})?;
+            .map_err(|e| ReplayError::IllegalMove { position: i, character: ch, reason: e })?;
     }
     Ok(pos)
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::game::*;
     use connect4_core::board::Bitboard;
     use connect4_core::position::Player;
     use connect4_core::win_detection::is_win;
-    use crate::game::*;
 
     #[test]
     fn empty_position_string() -> Result<(), ReplayError> {
@@ -86,7 +162,7 @@ mod tests {
             position: 0,
             character: '0',
         }));
-        assert_eq!(replay("8"), Err(ReplayError::InvalidCharacter{
+        assert_eq!(replay("8"), Err(ReplayError::InvalidCharacter {
             position: 0,
             character: '8',
         }))
@@ -99,7 +175,5 @@ mod tests {
             character: '1',
             reason: PlayError::ColumnFull
         }))
-
     }
-
 }

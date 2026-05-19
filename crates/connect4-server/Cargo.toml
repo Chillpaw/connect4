@@ -6,5 +6,5 @@ edition = "2024"
 [dependencies]
 axum = "0.8.9"
 connect4-core = { path = "../connect4-core" }
-serde = "1.0.228"
+serde = { version = "1.0.228", features = ["derive"] }
 tokio = { version = "1.52.1", features = ["full"] }
