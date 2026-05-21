@@ -46,3 +46,8 @@ h1, h2, h3 { font-family: var(--sans); color: var(--text); margin: 0; }
   gap: 24px;
   align-items: center;
 }
+
+@keyframes c4-pulse {
+  0%, 100% { transform: scale(1.0); filter: brightness(1.0); }
+  50%      { transform: scale(1.08); filter: brightness(1.25); }
+}
