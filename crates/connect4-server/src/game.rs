@@ -229,4 +229,18 @@ mod tests {
         assert_eq!(resp.state, GameState::RedWins);
         Ok(())
     }
+
+    #[test]
+    fn json_serialisation() -> Result<(), ReplayError> {
+        let moves = "44";
+        let resp = position_to_response(moves.to_string());
+        let json = serde_json::to_string(&resp).expect("serialisation failed.");
+        let value: serde_json::Value = serde_json::from_str(&json).expect("invalid json.");
+
+        assert_eq!(value["moves"], "44");
+        assert_eq!(value["state"], "in_progress");
+        assert_eq!(value["next_player"], "red");
+
+        Ok(())
+    }
 }

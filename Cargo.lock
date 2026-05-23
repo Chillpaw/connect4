@@ -115,6 +115,7 @@ dependencies = [
  "axum",
  "connect4-core",
  "serde",
+ "serde_json",
  "tokio",
 ]
 
