@@ -16,6 +16,7 @@ const PAIR_WEIGHT_OPP: f32 = 0.000012;
 
 pub struct SearchInfo {
     pub best_move: Option<usize>,
+    pub move_score: f32,
     pub nodes: u64,
     pub elapsed_ms: u128,
 }
@@ -36,8 +37,8 @@ pub fn best_move(pos: &Position, depth: usize) -> SearchInfo {
     let start = std::time::Instant::now();
 
     for col in legal_columns_ordered(pos) {
-        let mut child = *pos;
-        if child.try_play(col).is_err() {
+        let child = *pos;
+        if !child.can_play(col) {
             continue;
         }
         let score = search(
@@ -56,6 +57,7 @@ pub fn best_move(pos: &Position, depth: usize) -> SearchInfo {
 
     SearchInfo {
         best_move: best,
+        move_score: best_score,
         nodes,
         elapsed_ms: start.elapsed().as_millis()
     }
@@ -85,8 +87,8 @@ fn search(
     if to_move == perspective {
         let mut value = f32::NEG_INFINITY;
         for col in cols {
-            let mut p = pos;
-            if p.try_play(col).is_err() {
+            let p = pos;
+            if !p.can_play(col) {
                 continue;
             }
             let score = search(p, depth - 1, alpha, beta, perspective, nodes);
@@ -100,8 +102,8 @@ fn search(
     } else {
         let mut value = f32::INFINITY;
         for col in cols {
-            let mut p = pos;
-            if p.try_play(col).is_err() {
+            let p = pos;
+            if !p.can_play(col) {
                 continue;
             }
             let score = search(p, depth - 1, alpha, beta, perspective, nodes);
@@ -187,8 +189,8 @@ fn count_diag_left_pairs(b: Bitboard, empties: Bitboard) -> u32 {
     let m = b & mask;
     let offset = Position::WIDTH as u8 - 1;
     let pairs = m & (b >> offset);
-    let one_step_ahead = pairs & (empties >> offset * 2);
-    let two_steps_ahead = pairs & (empties >> offset * 3);
+    let one_step_ahead = pairs & (empties >> (offset * 2));
+    let two_steps_ahead = pairs & (empties >> (offset * 3));
     (pairs & one_step_ahead & two_steps_ahead).count()
 }
 
@@ -197,9 +199,9 @@ fn count_diag_right_pairs(b: Bitboard, empties: Bitboard) -> u32 {
     let m = b & mask;
     let offset = Position::WIDTH as u8 + 1;
     let pairs = m & (b >> offset);
-    let one_step_ahead = pairs & (empties >> offset * 2);
-    let two_steps_ahead = pairs & (empties >> offset * 3);
-    let one_step_behind = pairs & (empties << offset * 2);
+    let one_step_ahead = pairs & (empties >> (offset * 2));
+    let two_steps_ahead = pairs & (empties >> (offset * 3));
+    let one_step_behind = pairs & (empties << (offset * 2));
     ((one_step_ahead & two_steps_ahead) | (one_step_behind & one_step_ahead)).count()
 }
 
@@ -207,19 +209,21 @@ fn count_diag_right_pairs(b: Bitboard, empties: Bitboard) -> u32 {
 mod tests {
     use super::{best_move, find_pairs};
     use crate::board::Bitboard;
-    use crate::position::{Player, Position};
+    use crate::position::{PlayError, Player, Position};
 
     #[test]
-    fn best_move_finds_immediate_win() {
+    fn best_move_finds_immediate_win() -> Result<(), PlayError> {
         let mut pos = Position::new();
-        pos.try_play(0).unwrap();
-        pos.try_play(0).unwrap();
-        pos.try_play(1).unwrap();
-        pos.try_play(1).unwrap();
-        pos.try_play(2).unwrap();
-        pos.try_play(2).unwrap();
+        pos.play(0)?;
+        pos.play(0)?;
+        pos.play(1)?;
+        pos.play(1)?;
+        pos.play(2)?;
+        pos.play(2)?;
         assert_eq!(pos.player_to_move(), Player::Red);
         assert_eq!(best_move(&pos, 8).best_move, Some(3));
+
+        Ok(())
     }
 
     #[test]
