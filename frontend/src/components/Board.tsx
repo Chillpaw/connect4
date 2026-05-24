@@ -55,12 +55,16 @@ export function Board({ snapshot, onPlay, ghostColor }: Props) {
                 cursor: clickable ? "pointer" : "default",
               }}
             >
-              <Disc
-                cell={cell}
-                ghost={isGhost}
-                ghostColor={ghostColor}
-                winning={isWinning}
-              />
+              {isGhost ? (
+                <Disc
+                  cell={cell}
+                  ghost={true}
+                  ghostColor={ghostColor}
+                  winning={isWinning}
+                />
+              ) : (
+                <Disc cell={cell} winning={isWinning} />
+              )}
             </div>
           );
         }),

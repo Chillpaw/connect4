@@ -61,6 +61,9 @@ export default function App() {
 function ErrorBanner({ message }: { message: string }) {
   return (
     <div
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
       style={{
         padding: "8px 14px",
         borderRadius: 8,

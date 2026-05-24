@@ -17,7 +17,7 @@ Build a React + TypeScript frontend that:
 
 Server-owned state. The Axum server is the source of truth for every position. The frontend holds the last `GameStateResponse` returned by the API and re-renders from it. No optimistic updates in v1.
 
-```
+```text
 ┌─────────── React (Vite + TS + Tailwind v4) ─────────────┐    ┌──────── Axum ─────────┐
 │  GameSetup ─► useGame() hook ─► api/client.ts           │HTTP►  POST /games          │
 │                       ▼                                  │    │  POST /games/move    │
@@ -85,8 +85,9 @@ Column numbers on the wire are **1-indexed** to match the existing `moves` strin
 
 ## 5. Frontend structure
 
-```
+```text
 frontend/src/
+├── App.tsx                # top-level layout; routes between Setup and Play
 ├── api/
 │   └── client.ts          # fetch wrappers, typed request/response
 ├── game/
@@ -94,7 +95,6 @@ frontend/src/
 │   ├── derive.ts          # last-move, winning-line, legal-columns from board + moves
 │   └── useGame.ts         # React hook: state + actions (newGame, playColumn, aiStep)
 ├── components/
-│   ├── App.tsx            # top-level layout; routes between Setup and Play
 │   ├── GameSetup.tsx      # mode + color + depth pickers
 │   ├── Board.tsx          # 6×7 grid, column hover preview, click handler
 │   ├── Disc.tsx           # one cell (red/blue/empty + winning-highlight prop)

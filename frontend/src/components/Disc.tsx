@@ -2,14 +2,26 @@
 import type { CSSProperties } from "react";
 import type { CellState } from "../game/types";
 
-type Props = {
-  cell: CellState;
-  ghost?: boolean;        // hover preview
-  winning?: boolean;      // part of the winning line
-  ghostColor?: "red" | "blue";
-};
+// Discriminated union: ghostColor is required when ghost is true, and
+// disallowed otherwise. Prevents the "ghost-but-no-color" silent-fallback bug.
+type Props =
+  | {
+      cell: CellState;
+      ghost: true;
+      ghostColor: "red" | "blue";
+      winning?: boolean;
+    }
+  | {
+      cell: CellState;
+      ghost?: false;
+      ghostColor?: never;
+      winning?: boolean;
+    };
 
-export function Disc({ cell, ghost = false, winning = false, ghostColor }: Props) {
+export function Disc(props: Props) {
+  const { cell, winning = false } = props;
+  const ghost = props.ghost === true;
+  const ghostColor = ghost ? props.ghostColor : undefined;
   // Style decisions live here so Board.tsx stays layout-only.
   const baseStyle: CSSProperties = {
     width: "100%",

@@ -70,7 +70,7 @@ rmdir frontend/src/assets 2>/dev/null || true
 
 - [ ] **Step 3: Create `frontend/.env.development`**
 
-```
+```env
 VITE_API_BASE=http://localhost:3000
 ```
 

@@ -48,13 +48,8 @@ export function Controls({
       <button
         style={{ ...BTN, opacity: 0.5, cursor: "not-allowed" }}
         title={HINTS_DISABLED_TITLE}
-        aria-disabled="true"
-        onClick={(e) => {
-          e.preventDefault();
-          // Toggle is wired up but hint data isn't available yet.
-          // Keeping this call so the wiring is exercised; HintOverlay reads `hintsOn`.
-          onToggleHints();
-        }}
+        disabled
+        onClick={onToggleHints}
       >
         Hints {hintsOn ? "(on)" : "(off)"}
       </button>
